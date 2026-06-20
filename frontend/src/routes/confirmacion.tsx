@@ -9,6 +9,7 @@ import { LAST_ORDER_KEY } from "./carrito";
 
 type StoredOrder = {
   id: string;
+  number: string;
   total: number;
   items: {
     productId: string;
@@ -20,18 +21,19 @@ type StoredOrder = {
   }[];
 };
 
-type Search = { orderId?: string };
+type Search = { orderId?: string; orderNumber?: string };
 
 export const Route = createFileRoute("/confirmacion")({
   validateSearch: (search: Record<string, unknown>): Search => ({
     orderId: typeof search.orderId === "string" ? search.orderId : undefined,
+    orderNumber: typeof search.orderNumber === "string" ? search.orderNumber : undefined,
   }),
   head: () => ({ meta: [{ title: "Pedido confirmado — Stylos Variedades" }] }),
   component: Confirm,
 });
 
 function Confirm() {
-  const { orderId } = Route.useSearch();
+  const { orderId, orderNumber } = Route.useSearch();
   const items = useCart((s) => s.items);
   const { subtotal, count } = useCartTotals();
   const clear = useCart((s) => s.clear);
@@ -48,8 +50,8 @@ function Confirm() {
     }
   }, [orderId]);
 
-  const [fallbackId] = useState(() => `local-${crypto.randomUUID().slice(0, 8)}`);
-  const displayId = orderId ?? fallbackId;
+  const [fallbackId] = useState(() => `SV-local-${crypto.randomUUID().slice(0, 6)}`);
+  const displayNumber = orderNumber ?? storedOrder?.number ?? fallbackId;
   const snapshot = storedOrder?.items ?? items;
   const total =
     storedOrder?.total ?? subtotal ?? snapshot.reduce((a, i) => a + i.unitPrice * i.quantity, 0);
@@ -60,9 +62,7 @@ function Confirm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const whatsappHref = orderId
-    ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola Stylos, mi pedido ${orderId}`)}`
-    : `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola Stylos, mi pedido ${displayId}`)}`;
+  const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola Stylos, mi pedido ${displayNumber}`)}`;
 
   return (
     <StoreShell>
@@ -80,9 +80,9 @@ function Confirm() {
         <div className="mt-8 rounded-3xl border border-border bg-card p-6 text-left shadow-soft">
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">ID del pedido</div>
-              <div className="font-display mt-1 break-all text-sm font-bold text-primary sm:text-base">
-                {displayId}
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Número de pedido</div>
+              <div className="font-display mt-1 text-sm font-bold text-primary sm:text-base">
+                {displayNumber}
               </div>
             </div>
             <div className="text-right">

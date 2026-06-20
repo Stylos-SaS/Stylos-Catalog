@@ -55,6 +55,7 @@ model ProductoImagen {
 
 model Pedido {
   id                 String          @id @default(uuid())
+  numeroPedido       Int             @unique @default(autoincrement()) @map("numero_pedido")
   fechaCreacion      DateTime        @default(now()) @map("fecha_creacion")
   tipoPedido         TipoPedido      @map("tipo_pedido")
   estado             EstadoPedido    @default(pendiente)

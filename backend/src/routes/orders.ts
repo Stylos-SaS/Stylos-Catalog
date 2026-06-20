@@ -8,6 +8,7 @@ import {
   createOrder,
   OrderError,
 } from "../services/order.service.js";
+import { formatPedidoNumero } from "../lib/pedido-number.js";
 
 const createOrderSchema = z.object({
   type: z.enum(["detal", "mayor"]),
@@ -56,6 +57,7 @@ export async function orderRoutes(app: FastifyInstance) {
 
       return reply.status(201).send({
         id: order.id,
+        number: formatPedidoNumero(order.numeroPedido),
         type: order.tipoPedido,
         status: order.estado,
         total: order.total,

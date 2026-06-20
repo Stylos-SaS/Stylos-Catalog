@@ -59,6 +59,7 @@ function Cart() {
           LAST_ORDER_KEY,
           JSON.stringify({
             id: order.id,
+            number: order.number,
             total: order.total,
             contactoCliente: normalizedPhone,
             items: order.items.map((i) => ({
@@ -73,7 +74,10 @@ function Cart() {
         );
 
         window.open(order.whatsappUrl, "_blank");
-        navigate({ to: "/confirmacion", search: { orderId: order.id } });
+        navigate({
+          to: "/confirmacion",
+          search: { orderId: order.id, orderNumber: order.number },
+        });
         return;
       }
 

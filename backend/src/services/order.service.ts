@@ -1,4 +1,5 @@
 import type { PrismaClient, TipoPedido } from "../generated/prisma/client.js";
+import { formatPedidoNumero } from "../lib/pedido-number.js";
 import { buildDetalleLines, computeLineSubtotal } from "./order-totals.js";
 
 export class OrderError extends Error {
@@ -110,7 +111,7 @@ export function buildWhatsAppMessage(
   return [
     `¡Hola Stylos! Quiero finalizar este pedido (${catalogLabel}):`,
     "",
-    `Pedido ID: ${order.id}`,
+    `Pedido: ${formatPedidoNumero(order.numeroPedido)}`,
     order.contactoCliente ? `Mi WhatsApp: ${order.contactoCliente}` : "",
     "",
     ...lines,

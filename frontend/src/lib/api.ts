@@ -9,6 +9,7 @@ export type CreateOrderPayload = {
 
 export type CreateOrderResponse = {
   id: string;
+  number: string;
   type: "detal" | "mayor";
   status: string;
   total: number;
