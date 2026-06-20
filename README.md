@@ -56,6 +56,7 @@ Replace `[YOUR-PASSWORD]` with your database password (not the service role key)
 | `GET` | `/api/categories` | Product categories |
 | `GET` | `/api/products` | Product list (`?category=&q=&sort=&page=&limit=&mode=`) |
 | `GET` | `/api/products/:id` | Product detail by UUID |
+| `POST` | `/api/orders` | Create order (persists + returns WhatsApp URL) |
 
 ### Environment variables
 

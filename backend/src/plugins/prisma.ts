@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import fp from "fastify-plugin";
 import type { AppPrismaClient } from "../lib/db.js";
 import { createPrismaClient } from "../lib/db.js";
 
@@ -8,7 +9,7 @@ declare module "fastify" {
   }
 }
 
-export async function prismaPlugin(app: FastifyInstance) {
+async function prismaPlugin(app: FastifyInstance) {
   const prisma = createPrismaClient();
   await prisma.$connect();
   app.decorate("prisma", prisma);
@@ -17,3 +18,5 @@ export async function prismaPlugin(app: FastifyInstance) {
     await instance.prisma.$disconnect();
   });
 }
+
+export default fp(prismaPlugin, { name: "prisma" });

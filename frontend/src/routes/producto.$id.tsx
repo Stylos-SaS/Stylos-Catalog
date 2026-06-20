@@ -1,20 +1,27 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ChevronRight, Minus, Plus, ShoppingBag, Zap, Truck, RotateCcw, Heart } from "lucide-react";
+import { ChevronRight, Minus, Plus, ShoppingBag, Zap, Truck, RotateCcw, Heart, Loader2 } from "lucide-react";
 import { StoreShell } from "@/components/storefront/StoreShell";
 import { ProductCard } from "@/components/storefront/ProductCard";
-import { getProduct, products } from "@/lib/data";
+import { ApiError } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { CATALOG_SHORT_LABEL, IS_MAYOR_CATALOG, productPrice } from "@/lib/config";
+import { productImages } from "@/lib/product-image";
+import { productQueryOptions, relatedProductsQueryOptions } from "@/lib/queries";
 import { formatCOP } from "@/lib/format";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/producto/$id")({
-  loader: ({ params }) => {
-    const product = getProduct(params.id);
-    if (!product) throw notFound();
-    return { product };
+  loader: async ({ params, context }) => {
+    try {
+      const product = await context.queryClient.ensureQueryData(productQueryOptions(params.id));
+      return { product };
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) throw notFound();
+      throw error;
+    }
   },
   head: ({ loaderData }) => ({
     meta: [
@@ -42,7 +49,12 @@ function ProductDetail() {
   const [qty, setQty] = useState(1);
   const price = productPrice(product);
   const compareAt = IS_MAYOR_CATALOG ? product.priceRetail : null;
-  const related = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
+  const images = productImages(product.images);
+
+  const relatedQuery = useQuery(
+    relatedProductsQueryOptions(product.categoryId, product.id),
+  );
+  const related = relatedQuery.data ?? [];
 
   return (
     <StoreShell>
@@ -56,28 +68,28 @@ function ProductDetail() {
         </nav>
 
         <div className="mt-6 grid gap-10 md:grid-cols-2">
-          {/* Gallery */}
           <div className="space-y-3">
             <div className="aspect-square overflow-hidden rounded-3xl bg-secondary shadow-soft">
-              <img src={product.images[active]} alt={product.name} className="h-full w-full object-cover" />
+              <img src={images[active]} alt={product.name} className="h-full w-full object-cover" />
             </div>
-            <div className="flex gap-2 overflow-x-auto">
-              {product.images.map((img: string, i: number) => (
-                <button
-                  key={i}
-                  onClick={() => setActive(i)}
-                  className={cn(
-                    "h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition",
-                    active === i ? "border-primary" : "border-transparent opacity-70 hover:opacity-100",
-                  )}
-                >
-                  <img src={img} alt="" className="h-full w-full object-cover" />
-                </button>
-              ))}
-            </div>
+            {images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto">
+                {images.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setActive(i)}
+                    className={cn(
+                      "h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 transition",
+                      active === i ? "border-primary" : "border-transparent opacity-70 hover:opacity-100",
+                    )}
+                  >
+                    <img src={img} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Info */}
           <div className="space-y-5">
             <div>
               <div className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -138,8 +150,11 @@ function ProductDetail() {
           </div>
         </div>
 
-        {/* Related */}
-        {related.length > 0 && (
+        {relatedQuery.isLoading ? (
+          <div className="mt-20 flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : related.length > 0 ? (
           <section className="mt-20">
             <h2 className="font-display text-2xl font-bold sm:text-3xl">También te puede gustar</h2>
             <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-4">
@@ -148,7 +163,7 @@ function ProductDetail() {
               ))}
             </div>
           </section>
-        )}
+        ) : null}
       </div>
     </StoreShell>
   );

@@ -1,10 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Minus, Plus, Trash2, ShoppingBag, MessageCircle, ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Minus, Plus, Trash2, ShoppingBag, MessageCircle, ArrowLeft, Loader2, Phone } from "lucide-react";
+import { toast } from "sonner";
 import { StoreShell } from "@/components/storefront/StoreShell";
 import { useCart, useCartTotals } from "@/lib/cart";
-import { CATALOG_SHORT_LABEL } from "@/lib/config";
+import { API_BASE_URL, CATALOG_MODE, CATALOG_SHORT_LABEL, CART_STORAGE_KEY } from "@/lib/config";
 import { formatCOP } from "@/lib/format";
-import { WHATSAPP_NUMBER } from "@/lib/data";
+import { createOrder } from "@/lib/api";
+import { WHATSAPP_NUMBER } from "@/lib/config";
+import { formatPhoneDisplay, isValidWhatsAppPhone, normalizeWhatsAppPhone } from "@/lib/phone";
+
+const LAST_ORDER_KEY = "stylos-last-order";
+const PHONE_STORAGE_KEY = `${CART_STORAGE_KEY}-phone`;
 
 export const Route = createFileRoute("/carrito")({
   head: () => ({ meta: [{ title: "Carrito — Stylos Variedades" }] }),
@@ -18,14 +25,69 @@ function Cart() {
   const clear = useCart((s) => s.clear);
   const { subtotal, count } = useCartTotals();
   const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [phone, setPhone] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem(PHONE_STORAGE_KEY) ?? "";
+  });
 
-  const handleFinish = () => {
-    const lines = items
-      .map((i) => `• ${i.name} x${i.quantity} — ${formatCOP(i.price * i.quantity)}`)
-      .join("%0A");
-    const msg = `¡Hola Stylos! Quiero finalizar este pedido (${CATALOG_SHORT_LABEL}):%0A%0A${lines}%0A%0ATotal: ${formatCOP(subtotal)}`;
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
-    navigate({ to: "/confirmacion" });
+  const phoneValid = isValidWhatsAppPhone(phone);
+  const normalizedPhone = phoneValid ? normalizeWhatsAppPhone(phone)! : null;
+
+  useEffect(() => {
+    if (phone.trim()) {
+      localStorage.setItem(PHONE_STORAGE_KEY, phone);
+    }
+  }, [phone]);
+
+  const handleFinish = async () => {
+    if (!phoneValid || !normalizedPhone) {
+      toast.error("Ingresa un número de WhatsApp válido (10 dígitos, empieza por 3)");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (API_BASE_URL) {
+        const order = await createOrder({
+          type: CATALOG_MODE,
+          contactoCliente: normalizedPhone,
+          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        });
+
+        sessionStorage.setItem(
+          LAST_ORDER_KEY,
+          JSON.stringify({
+            id: order.id,
+            total: order.total,
+            contactoCliente: normalizedPhone,
+            items: order.items.map((i) => ({
+              productId: i.productId,
+              name: i.name,
+              quantity: i.quantity,
+              unitPrice: i.unitPrice,
+              subtotal: i.subtotal,
+              image: items.find((c) => c.productId === i.productId)?.image ?? "",
+            })),
+          }),
+        );
+
+        window.open(order.whatsappUrl, "_blank");
+        navigate({ to: "/confirmacion", search: { orderId: order.id } });
+        return;
+      }
+
+      const lines = items
+        .map((i) => `• ${i.name} x${i.quantity} — ${formatCOP(i.price * i.quantity)}`)
+        .join("%0A");
+      const msg = `¡Hola Stylos! Quiero finalizar este pedido (${CATALOG_SHORT_LABEL}):%0A%0AMi WhatsApp: ${normalizedPhone}%0A%0A${lines}%0A%0ATotal: ${formatCOP(subtotal)}`;
+      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
+      navigate({ to: "/confirmacion" });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo crear el pedido");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -115,6 +177,32 @@ function Cart() {
                   <Row label="Envío" value="Se coordina por WhatsApp" muted />
                 </div>
                 <div className="my-4 border-t border-border" />
+                <label className="block space-y-2">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Tu WhatsApp
+                  </span>
+                  <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 focus-within:ring-4 focus-within:ring-primary/15">
+                    <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">+57</span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel"
+                      placeholder="300 123 4567"
+                      value={phone}
+                      onChange={(e) => setPhone(formatPhoneDisplay(e.target.value))}
+                      className="w-full bg-transparent text-sm outline-none"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Lo usaremos para confirmar tu pedido por WhatsApp.
+                  </p>
+                  {phone.trim() && !phoneValid && (
+                    <p className="text-[11px] text-destructive">
+                      Número inválido. Debe tener 10 dígitos y empezar por 3.
+                    </p>
+                  )}
+                </label>
                 <div className="flex items-baseline justify-between">
                   <span className="text-sm text-muted-foreground">Total</span>
                   <span className="font-display text-2xl font-bold text-primary">
@@ -122,10 +210,16 @@ function Cart() {
                   </span>
                 </div>
                 <button
-                  onClick={handleFinish}
-                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-4 text-sm font-bold text-primary-foreground shadow-pop transition hover:scale-[1.01]"
+                  onClick={() => void handleFinish()}
+                  disabled={submitting || !phoneValid}
+                  className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-brand px-6 py-4 text-sm font-bold text-primary-foreground shadow-pop transition hover:scale-[1.01] disabled:opacity-70 disabled:hover:scale-100"
                 >
-                  <MessageCircle className="h-4 w-4" /> Finalizar Pedido por WhatsApp
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MessageCircle className="h-4 w-4" />
+                  )}
+                  {submitting ? "Creando pedido..." : "Finalizar Pedido por WhatsApp"}
                 </button>
                 <p className="mt-3 text-center text-[11px] text-muted-foreground">
                   Te conectaremos directamente con nuestra asesora.
@@ -151,3 +245,5 @@ function Row({ label, value, muted }: { label: string; value: string; muted?: bo
     </div>
   );
 }
+
+export { LAST_ORDER_KEY };

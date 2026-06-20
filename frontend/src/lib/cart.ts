@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Product } from "./data";
+import type { Product } from "./types";
 import { CART_STORAGE_KEY, CATALOG_MODE, productPrice } from "./config";
+import { productPrimaryImage } from "./product-image";
 
 export type PriceMode = "detal" | "mayor";
 
@@ -38,7 +39,7 @@ export const useCart = create<CartState>()(
           set({
             items: [
               ...get().items,
-              { productId: p.id, name: p.name, image: p.images[0], price, quantity: qty },
+              { productId: p.id, name: p.name, image: productPrimaryImage(p.images), price, quantity: qty },
             ],
           });
         }

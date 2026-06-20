@@ -16,6 +16,8 @@ export const CATALOG_SHORT_LABEL = IS_MAYOR_CATALOG ? "Mayor" : "Detal";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
+export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER ?? "573014039265";
+
 export const CART_STORAGE_KEY = `stylos-cart-${CATALOG_MODE}`;
 
 export function productPrice(

@@ -1,10 +1,11 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { config } from "./config.js";
-import { prismaPlugin } from "./plugins/prisma.js";
+import prismaPlugin from "./plugins/prisma.js";
 import { healthRoutes } from "./routes/health.js";
 import { categoryRoutes } from "./routes/categories.js";
 import { productRoutes } from "./routes/products.js";
+import { orderRoutes } from "./routes/orders.js";
 
 export async function buildApp() {
   const app = Fastify({
@@ -33,6 +34,7 @@ export async function buildApp() {
   await app.register(healthRoutes);
   await app.register(categoryRoutes);
   await app.register(productRoutes);
+  await app.register(orderRoutes);
 
   return app;
 }

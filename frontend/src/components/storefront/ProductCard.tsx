@@ -1,27 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import { ShoppingBag, Eye } from "lucide-react";
-import type { Product } from "@/lib/data";
+import type { Product } from "@/lib/types";
 import { formatCOP } from "@/lib/format";
 import { useCart } from "@/lib/cart";
 import { IS_MAYOR_CATALOG, productPrice } from "@/lib/config";
+import { productPrimaryImage } from "@/lib/product-image";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-
-const tagStyles: Record<string, string> = {
-  nuevo: "bg-success/15 text-success",
-  "mas-vendido": "bg-primary/15 text-primary",
-  oferta: "bg-warning/20 text-foreground",
-};
-const tagLabel: Record<string, string> = {
-  nuevo: "Nuevo",
-  "mas-vendido": "Más vendido",
-  oferta: "Oferta",
-};
 
 export function ProductCard({ product }: { product: Product }) {
   const add = useCart((s) => s.add);
   const price = productPrice(product);
   const compareAt = IS_MAYOR_CATALOG ? product.priceRetail : null;
+  const image = productPrimaryImage(product.images);
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-3xl border border-border/60 bg-card shadow-soft transition hover:shadow-pop hover:-translate-y-0.5">
@@ -31,21 +21,11 @@ export function ProductCard({ product }: { product: Product }) {
         className="relative block aspect-square overflow-hidden bg-secondary"
       >
         <img
-          src={product.images[0]}
+          src={image}
           alt={product.name}
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
-        {product.tag && (
-          <span
-            className={cn(
-              "absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
-              tagStyles[product.tag],
-            )}
-          >
-            {tagLabel[product.tag]}
-          </span>
-        )}
         <div className="absolute inset-x-3 bottom-3 flex translate-y-2 gap-2 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">
           <button
             onClick={(e) => {

@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Sparkles, Truck, ShieldCheck, Heart } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, Sparkles, Truck, ShieldCheck, Heart, Loader2, AlertCircle } from "lucide-react";
 import { StoreShell } from "@/components/storefront/StoreShell";
 import { ProductCard } from "@/components/storefront/ProductCard";
-import { categories, products } from "@/lib/data";
+import { enrichCategories } from "@/lib/categories-ui";
 import { IS_MAYOR_CATALOG } from "@/lib/config";
+import { categoriesQueryOptions, featuredProductsQueryOptions } from "@/lib/queries";
 import heroImg from "@/assets/hero.jpg";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +29,14 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const featured = products.slice(0, 8);
+  const categoriesQuery = useQuery(categoriesQueryOptions());
+  const featuredQuery = useQuery(featuredProductsQueryOptions());
+
+  const categories = enrichCategories(categoriesQuery.data ?? []);
+  const featured = featuredQuery.data?.items ?? [];
+  const loading = categoriesQuery.isLoading || featuredQuery.isLoading;
+  const error = categoriesQuery.error ?? featuredQuery.error;
+
   return (
     <StoreShell>
       {/* Hero */}
@@ -81,23 +90,31 @@ function Home() {
       {/* Categorías */}
       <section className="mx-auto max-w-7xl px-6 py-14">
         <SectionHeading title="Compra por categoría" subtitle="Encuentra justo lo que buscas" />
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
-          {categories.map((c) => (
-            <Link
-              key={c.slug}
-              to="/catalogo"
-              search={{ cat: c.slug }}
-              className={cn(
-                "group relative flex flex-col items-center gap-2 rounded-2xl border border-border/60 bg-card p-5 text-center shadow-soft transition hover:-translate-y-0.5 hover:shadow-pop",
-              )}
-            >
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-soft text-2xl transition group-hover:scale-110">
-                {c.emoji}
-              </div>
-              <div className="text-sm font-semibold">{c.name}</div>
-            </Link>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <ApiErrorMessage error={error} />
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+            {categories.map((c) => (
+              <Link
+                key={c.id}
+                to="/catalogo"
+                search={{ cat: c.id }}
+                className={cn(
+                  "group relative flex flex-col items-center gap-2 rounded-2xl border border-border/60 bg-card p-5 text-center shadow-soft transition hover:-translate-y-0.5 hover:shadow-pop",
+                )}
+              >
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-soft text-2xl transition group-hover:scale-110">
+                  {c.emoji}
+                </div>
+                <div className="text-sm font-semibold">{c.name}</div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Productos destacados */}
@@ -108,13 +125,36 @@ function Home() {
             Ver todo <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
-          {featured.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="mt-6 flex justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <div className="mt-6">
+            <ApiErrorMessage error={error} />
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
+            {featured.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        )}
       </section>
     </StoreShell>
+  );
+}
+
+function ApiErrorMessage({ error }: { error: Error }) {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+      <AlertCircle className="h-8 w-8 text-muted-foreground" />
+      <p className="text-sm text-muted-foreground">
+        No pudimos cargar el catálogo. Verifica que el backend esté activo y que{" "}
+        <code className="text-xs">VITE_API_BASE_URL</code> esté configurado.
+      </p>
+      <p className="text-xs text-muted-foreground">{error.message}</p>
+    </div>
   );
 }
 

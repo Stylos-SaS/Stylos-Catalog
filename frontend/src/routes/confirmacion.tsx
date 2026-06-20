@@ -1,29 +1,68 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, MessageCircle, Home } from "lucide-react";
 import { StoreShell } from "@/components/storefront/StoreShell";
 import { useCart, useCartTotals } from "@/lib/cart";
 import { formatCOP } from "@/lib/format";
-import { WHATSAPP_NUMBER } from "@/lib/data";
+import { WHATSAPP_NUMBER } from "@/lib/config";
+import { LAST_ORDER_KEY } from "./carrito";
+
+type StoredOrder = {
+  id: string;
+  total: number;
+  items: {
+    productId: string;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    subtotal: number;
+    image: string;
+  }[];
+};
+
+type Search = { orderId?: string };
 
 export const Route = createFileRoute("/confirmacion")({
+  validateSearch: (search: Record<string, unknown>): Search => ({
+    orderId: typeof search.orderId === "string" ? search.orderId : undefined,
+  }),
   head: () => ({ meta: [{ title: "Pedido confirmado — Stylos Variedades" }] }),
   component: Confirm,
 });
 
 function Confirm() {
+  const { orderId } = Route.useSearch();
   const items = useCart((s) => s.items);
   const { subtotal, count } = useCartTotals();
   const clear = useCart((s) => s.clear);
-  const [orderNumber] = useState(`SV-${Math.floor(1000 + Math.random() * 9000)}`);
-  const [snapshot] = useState(items);
+
+  const storedOrder = useMemo(() => {
+    if (!orderId) return null;
+    try {
+      const raw = sessionStorage.getItem(LAST_ORDER_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as StoredOrder;
+      return parsed.id === orderId ? parsed : null;
+    } catch {
+      return null;
+    }
+  }, [orderId]);
+
+  const [fallbackId] = useState(() => `local-${crypto.randomUUID().slice(0, 8)}`);
+  const displayId = orderId ?? fallbackId;
+  const snapshot = storedOrder?.items ?? items;
+  const total =
+    storedOrder?.total ?? subtotal ?? snapshot.reduce((a, i) => a + i.unitPrice * i.quantity, 0);
 
   useEffect(() => {
-    // Clear cart shortly after rendering snapshot
     const t = setTimeout(() => clear(), 100);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const whatsappHref = orderId
+    ? `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola Stylos, mi pedido ${orderId}`)}`
+    : `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola Stylos, mi pedido ${displayId}`)}`;
 
   return (
     <StoreShell>
@@ -41,8 +80,10 @@ function Confirm() {
         <div className="mt-8 rounded-3xl border border-border bg-card p-6 text-left shadow-soft">
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">Nº de pedido</div>
-              <div className="font-display text-2xl font-bold text-primary">{orderNumber}</div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">ID del pedido</div>
+              <div className="font-display mt-1 break-all text-sm font-bold text-primary sm:text-base">
+                {displayId}
+              </div>
             </div>
             <div className="text-right">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Productos</div>
@@ -50,26 +91,38 @@ function Confirm() {
             </div>
           </div>
           <div className="mt-4 space-y-3">
-            {(snapshot.length ? snapshot : items).map((it) => (
+            {snapshot.map((it) => (
               <div key={it.productId} className="flex items-center gap-3">
-                <img src={it.image} alt="" className="h-12 w-12 rounded-xl object-cover" />
+                {"image" in it && it.image ? (
+                  <img src={it.image} alt="" className="h-12 w-12 rounded-xl object-cover" />
+                ) : (
+                  <div className="h-12 w-12 rounded-xl bg-secondary" />
+                )}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{it.name}</div>
                   <div className="text-xs text-muted-foreground">x{it.quantity}</div>
                 </div>
-                <div className="font-semibold text-sm">{formatCOP(it.price * it.quantity)}</div>
+                <div className="font-semibold text-sm">
+                  {formatCOP(
+                    "subtotal" in it && typeof it.subtotal === "number"
+                      ? it.subtotal
+                      : "price" in it
+                        ? it.price * it.quantity
+                        : it.unitPrice * it.quantity,
+                  )}
+                </div>
               </div>
             ))}
           </div>
           <div className="mt-4 flex items-baseline justify-between border-t border-border pt-4">
             <span className="text-sm text-muted-foreground">Total</span>
-            <span className="font-display text-2xl font-bold text-primary">{formatCOP(subtotal || snapshot.reduce((a, i) => a + i.price * i.quantity, 0))}</span>
+            <span className="font-display text-2xl font-bold text-primary">{formatCOP(total)}</span>
           </div>
         </div>
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}?text=Hola%20Stylos%2C%20mi%20pedido%20${orderNumber}`}
+            href={whatsappHref}
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-full bg-[oklch(0.7_0.15_155)] px-6 py-3 text-sm font-semibold text-white shadow-pop hover:opacity-90"
