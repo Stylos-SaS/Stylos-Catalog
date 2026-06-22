@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
         name: "description",
         content: IS_MAYOR_CATALOG
           ? "Precios al por mayor para tu negocio. Hogar, accesorios, belleza, regalos y papelería. Pide por WhatsApp."
-          : "Descubre hogar, accesorios, belleza, regalos y papelería. Catálogo al detal. Pide por WhatsApp.",
+          : "Descubre hogar, accesorios, belleza, regalos y papelería. Pide por WhatsApp.",
       },
     ],
   }),
@@ -53,7 +53,7 @@ function Home() {
             <p className="max-w-md text-base text-muted-foreground sm:text-lg">
               {IS_MAYOR_CATALOG
                 ? "Precios especiales al por mayor para revender. Hogar, regalos, accesorios y mucho más."
-                : "Hogar, regalos, accesorios y mucho más. Compra al detal con precios que sorprenden."}
+                : "Hogar, regalos, accesorios y mucho más. Precios que sorprenden."}
             </p>
             <div className="flex flex-wrap gap-3">
               <Link

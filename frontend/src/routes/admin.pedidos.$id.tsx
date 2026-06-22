@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Trash2,
@@ -13,6 +13,8 @@ import {
   Search,
   Loader2,
   AlertCircle,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { formatCOP, formatDate } from "@/lib/format";
 import { StatusBadge, TypeBadge } from "./admin.index";
@@ -22,8 +24,13 @@ import { useAdminProducts } from "@/lib/admin-queries";
 import type { AdminOrderLine, OrderType, Product } from "@/lib/types";
 import { productPrimaryImage } from "@/lib/product-image";
 import { useDebouncedCallback } from "@/lib/hooks/useDebouncedCallback";
+import {
+  buildAdminOrderDisplayRows,
+  groupRowKey,
+  type AdminOrderDisplayRow,
+} from "@/lib/admin-order-lines";
+import { ConfirmDocModal } from "@/components/admin/ConfirmDocModal";
 import { toast } from "sonner";
-import logo from "@/assets/stylos-logo.jpeg";
 
 export const Route = createFileRoute("/admin/pedidos/$id")({
   component: OrderDetail,
@@ -47,7 +54,10 @@ function OrderDetail() {
   const [addingProduct, setAddingProduct] = useState(false);
   const [confirmView, setConfirmView] = useState(false);
   const [hasPendingSave, setHasPendingSave] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const orderSyncedRef = useRef<string | null>(null);
+
+  const displayRows = useMemo(() => buildAdminOrderDisplayRows(items), [items]);
 
   useEffect(() => {
     orderSyncedRef.current = null;
@@ -58,6 +68,7 @@ function OrderDetail() {
       setItems(order.items);
       orderSyncedRef.current = order.id;
       setHasPendingSave(false);
+      setExpandedGroups(new Set());
     }
   }, [order]);
 
@@ -93,6 +104,15 @@ function OrderDetail() {
     debouncedSave(nextItems);
   };
 
+  const toggleGroupExpand = (key: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   const toggleAvail = (productId: string) => {
     const next = items.map((i) =>
       i.productId === productId ? { ...i, available: !i.available } : i,
@@ -126,6 +146,7 @@ function OrderDetail() {
         ? {
             ...i,
             productId: product.id,
+            codigo: product.codigo,
             name: product.name,
             image: productPrimaryImage(product.images),
             unitPrice,
@@ -147,6 +168,7 @@ function OrderDetail() {
       {
         consec: items.length + 1,
         productId: product.id,
+        codigo: product.codigo,
         name: product.name,
         image: productPrimaryImage(product.images),
         unitPrice,
@@ -183,6 +205,14 @@ function OrderDetail() {
   const displayTotal = computeOrderTotal(items);
   const saving = updateOrder.isPending;
   const syncStatus = saving ? "saving" : hasPendingSave ? "pending" : "idle";
+
+  const lineActions = {
+    saving,
+    onToggleAvail: toggleAvail,
+    onUpdateQuantity: updateQuantity,
+    onReplace: setReplaceFor,
+    onRemove: removeItem,
+  };
 
   return (
     <div className="space-y-6">
@@ -250,87 +280,14 @@ function OrderDetail() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((it) => (
-                  <tr
-                    key={`${it.consec}-${it.productId}`}
-                    className={cn("border-t border-border", !it.available && "opacity-50")}
-                  >
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <img src={it.image} alt="" className="h-11 w-11 rounded-xl object-cover" />
-                        <span className="font-semibold">{it.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-right">{formatCOP(it.unitPrice)}</td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(it.productId, it.quantity - 1)}
-                          disabled={saving || it.quantity <= 1}
-                          className="grid h-7 w-7 place-items-center rounded-full hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
-                          title="Disminuir cantidad"
-                        >
-                          <Minus className="h-3.5 w-3.5" />
-                        </button>
-                        <span className="w-8 text-center text-sm font-semibold tabular-nums">
-                          {it.quantity}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(it.productId, it.quantity + 1)}
-                          disabled={saving}
-                          className="grid h-7 w-7 place-items-center rounded-full hover:bg-secondary disabled:opacity-40"
-                          title="Aumentar cantidad"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-right font-semibold text-primary">
-                      {formatCOP(it.subtotal)}
-                    </td>
-                    <td className="px-5 py-3">
-                      <button
-                        onClick={() => toggleAvail(it.productId)}
-                        disabled={saving}
-                        className={cn(
-                          "rounded-full px-2.5 py-0.5 text-[11px] font-semibold disabled:opacity-60",
-                          it.available ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
-                        )}
-                      >
-                        {it.available ? "Disponible" : "No disponible"}
-                      </button>
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex justify-end gap-1">
-                        <button
-                          onClick={() => toggleAvail(it.productId)}
-                          disabled={saving}
-                          title="Marcar no disponible"
-                          className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-warning/15 hover:text-foreground disabled:opacity-40"
-                        >
-                          <Ban className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setReplaceFor(it.productId)}
-                          disabled={saving}
-                          title="Reemplazar"
-                          className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40"
-                        >
-                          <Replace className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => removeItem(it.productId)}
-                          disabled={saving}
-                          title="Eliminar"
-                          className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                {displayRows.map((row) => (
+                  <OrderDisplayRows
+                    key={groupRowKey(row)}
+                    row={row}
+                    expanded={expandedGroups.has(groupRowKey(row))}
+                    onToggleExpand={() => toggleGroupExpand(groupRowKey(row))}
+                    {...lineActions}
+                  />
                 ))}
               </tbody>
             </table>
@@ -402,6 +359,183 @@ function OrderDetail() {
         />
       )}
     </div>
+  );
+}
+
+type LineActions = {
+  saving: boolean;
+  onToggleAvail: (productId: string) => void;
+  onUpdateQuantity: (productId: string, quantity: number) => void;
+  onReplace: (productId: string) => void;
+  onRemove: (productId: string) => void;
+};
+
+function OrderDisplayRows({
+  row,
+  expanded,
+  onToggleExpand,
+  ...actions
+}: {
+  row: AdminOrderDisplayRow;
+  expanded: boolean;
+  onToggleExpand: () => void;
+} & LineActions) {
+  if (row.kind === "single") {
+    return (
+      <OrderLineRow
+        line={row.line}
+        {...actions}
+      />
+    );
+  }
+
+  return (
+    <>
+      <tr className="border-t border-border bg-secondary/10">
+        <td className="px-5 py-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onToggleExpand}
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-full hover:bg-secondary"
+              title={expanded ? "Ocultar líneas" : "Ver líneas individuales"}
+            >
+              {expanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </button>
+            <img src={row.image} alt="" className="h-11 w-11 rounded-xl object-cover" />
+            <div>
+              <span className="font-semibold">{row.name}</span>
+              <div className="text-xs text-muted-foreground">
+                Código {row.codigo} · {row.lines.length} líneas
+              </div>
+            </div>
+          </div>
+        </td>
+        <td className="px-5 py-3 text-right">{formatCOP(row.unitPrice)}</td>
+        <td className="px-5 py-3 text-center font-semibold tabular-nums">{row.quantity}</td>
+        <td className="px-5 py-3 text-right font-semibold text-primary">
+          {formatCOP(row.subtotal)}
+        </td>
+        <td className="px-5 py-3">
+          <span className="rounded-full bg-success/15 px-2.5 py-0.5 text-[11px] font-semibold text-success">
+            Agrupado
+          </span>
+        </td>
+        <td className="px-5 py-3" />
+      </tr>
+      {expanded &&
+        row.lines.map((line) => (
+          <OrderLineRow key={`${line.consec}-${line.productId}`} line={line} nested {...actions} />
+        ))}
+    </>
+  );
+}
+
+function OrderLineRow({
+  line,
+  nested = false,
+  saving,
+  onToggleAvail,
+  onUpdateQuantity,
+  onReplace,
+  onRemove,
+}: {
+  line: AdminOrderLine;
+  nested?: boolean;
+} & LineActions) {
+  return (
+    <tr
+      className={cn(
+        "border-t border-border",
+        !line.available && "opacity-50",
+        nested && "bg-secondary/5",
+      )}
+    >
+      <td className={cn("px-5 py-3", nested && "pl-14")}>
+        <div className="flex items-center gap-3">
+          <img src={line.image} alt="" className="h-11 w-11 rounded-xl object-cover" />
+          <div>
+            <span className="font-semibold">{line.name}</span>
+            {line.codigo && (
+              <div className="text-xs text-muted-foreground">{line.codigo}</div>
+            )}
+          </div>
+        </div>
+      </td>
+      <td className="px-5 py-3 text-right">{formatCOP(line.unitPrice)}</td>
+      <td className="px-5 py-3">
+        <div className="flex items-center justify-center gap-1">
+          <button
+            type="button"
+            onClick={() => onUpdateQuantity(line.productId, line.quantity - 1)}
+            disabled={saving || line.quantity <= 1}
+            className="grid h-7 w-7 place-items-center rounded-full hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Disminuir cantidad"
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </button>
+          <span className="w-8 text-center text-sm font-semibold tabular-nums">
+            {line.quantity}
+          </span>
+          <button
+            type="button"
+            onClick={() => onUpdateQuantity(line.productId, line.quantity + 1)}
+            disabled={saving}
+            className="grid h-7 w-7 place-items-center rounded-full hover:bg-secondary disabled:opacity-40"
+            title="Aumentar cantidad"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </td>
+      <td className="px-5 py-3 text-right font-semibold text-primary">
+        {formatCOP(line.subtotal)}
+      </td>
+      <td className="px-5 py-3">
+        <button
+          onClick={() => onToggleAvail(line.productId)}
+          disabled={saving}
+          className={cn(
+            "rounded-full px-2.5 py-0.5 text-[11px] font-semibold disabled:opacity-60",
+            line.available ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
+          )}
+        >
+          {line.available ? "Disponible" : "No disponible"}
+        </button>
+      </td>
+      <td className="px-5 py-3">
+        <div className="flex justify-end gap-1">
+          <button
+            onClick={() => onToggleAvail(line.productId)}
+            disabled={saving}
+            title="Marcar no disponible"
+            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-warning/15 hover:text-foreground disabled:opacity-40"
+          >
+            <Ban className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => onReplace(line.productId)}
+            disabled={saving}
+            title="Reemplazar"
+            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40"
+          >
+            <Replace className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => onRemove(line.productId)}
+            disabled={saving}
+            title="Eliminar"
+            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }
 
@@ -485,89 +619,6 @@ function ProductPickerModal({
               </button>
             ))
           )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ConfirmDocModal({
-  order,
-  total,
-  onClose,
-}: {
-  order: {
-    number: string;
-    date: string;
-    type: OrderType;
-    customer: string;
-    items: AdminOrderLine[];
-  };
-  total: number;
-  onClose: () => void;
-}) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/30 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl rounded-3xl bg-background shadow-pop overflow-hidden">
-        <div className="flex items-center justify-between border-b border-border p-5">
-          <h2 className="font-display text-xl font-bold">Confirmación del pedido</h2>
-          <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full hover:bg-secondary">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="max-h-[60vh] overflow-y-auto">
-          <div className="m-6 rounded-2xl bg-gradient-soft p-6">
-            <div className="flex items-center justify-between border-b border-border pb-4">
-              <div className="flex items-center gap-3">
-                <img src={logo} alt="" className="h-12 w-12 rounded-full" />
-                <div>
-                  <div className="font-display text-lg font-bold">Stylos Variedades</div>
-                  <div className="text-xs text-muted-foreground">
-                    Pedido {order.type === "detal" ? "Detal" : "Mayor"}
-                  </div>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-display text-xl font-bold text-primary">{order.number}</div>
-                <div className="text-xs text-muted-foreground">{formatDate(order.date)}</div>
-              </div>
-            </div>
-            <div className="mt-4 space-y-3">
-              {order.items.map((it) => (
-                <div
-                  key={`${it.consec}-${it.productId}`}
-                  className={cn("flex items-center gap-3", !it.available && "opacity-50 line-through")}
-                >
-                  <img src={it.image} alt="" className="h-12 w-12 rounded-xl object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold">{it.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      x{it.quantity} {!it.available && "· No disponible"}
-                    </div>
-                  </div>
-                  <div className="font-semibold text-sm">{formatCOP(it.subtotal)}</div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-5 flex items-baseline justify-between border-t border-border pt-4">
-              <span className="font-display text-sm font-semibold">Total a pagar</span>
-              <span className="font-display text-2xl font-bold text-primary">{formatCOP(total)}</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-secondary/30 p-4">
-          <button
-            disabled
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold opacity-60 cursor-not-allowed"
-          >
-            <Download className="h-4 w-4" /> Descargar PDF
-          </button>
-          <button
-            disabled
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold opacity-60 cursor-not-allowed"
-          >
-            <Download className="h-4 w-4" /> Descargar imagen
-          </button>
         </div>
       </div>
     </div>

@@ -20,6 +20,7 @@ import { Route as ProductoIdRouteImport } from './routes/producto.$id'
 import { Route as AdminProductosRouteImport } from './routes/admin.productos'
 import { Route as AdminPerfilRouteImport } from './routes/admin.perfil'
 import { Route as AdminPedidosRouteImport } from './routes/admin.pedidos'
+import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin.pedidos.index'
 import { Route as AdminPedidosIdRouteImport } from './routes/admin.pedidos.$id'
 
@@ -78,6 +79,11 @@ const AdminPedidosRoute = AdminPedidosRouteImport.update({
   path: '/pedidos',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/catalogo': typeof CatalogoRoute
   '/confirmacion': typeof ConfirmacionRoute
   '/mayorista': typeof MayoristaRoute
+  '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/perfil': typeof AdminPerfilRoute
   '/admin/productos': typeof AdminProductosRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/catalogo': typeof CatalogoRoute
   '/confirmacion': typeof ConfirmacionRoute
   '/mayorista': typeof MayoristaRoute
+  '/admin/login': typeof AdminLoginRoute
   '/admin/perfil': typeof AdminPerfilRoute
   '/admin/productos': typeof AdminProductosRoute
   '/producto/$id': typeof ProductoIdRoute
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/catalogo': typeof CatalogoRoute
   '/confirmacion': typeof ConfirmacionRoute
   '/mayorista': typeof MayoristaRoute
+  '/admin/login': typeof AdminLoginRoute
   '/admin/pedidos': typeof AdminPedidosRouteWithChildren
   '/admin/perfil': typeof AdminPerfilRoute
   '/admin/productos': typeof AdminProductosRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/confirmacion'
     | '/mayorista'
+    | '/admin/login'
     | '/admin/pedidos'
     | '/admin/perfil'
     | '/admin/productos'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/confirmacion'
     | '/mayorista'
+    | '/admin/login'
     | '/admin/perfil'
     | '/admin/productos'
     | '/producto/$id'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '/catalogo'
     | '/confirmacion'
     | '/mayorista'
+    | '/admin/login'
     | '/admin/pedidos'
     | '/admin/perfil'
     | '/admin/productos'
@@ -268,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPedidosRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/login': {
+      id: '/admin/login'
+      path: '/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/pedidos/': {
       id: '/admin/pedidos/'
       path: '/'
@@ -300,6 +319,7 @@ const AdminPedidosRouteWithChildren = AdminPedidosRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminLoginRoute: typeof AdminLoginRoute
   AdminPedidosRoute: typeof AdminPedidosRouteWithChildren
   AdminPerfilRoute: typeof AdminPerfilRoute
   AdminProductosRoute: typeof AdminProductosRoute
@@ -307,6 +327,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminLoginRoute: AdminLoginRoute,
   AdminPedidosRoute: AdminPedidosRouteWithChildren,
   AdminPerfilRoute: AdminPerfilRoute,
   AdminProductosRoute: AdminProductosRoute,

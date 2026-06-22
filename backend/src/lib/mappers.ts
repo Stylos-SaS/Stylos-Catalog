@@ -88,6 +88,7 @@ export function toAdminProductDTO(product: ProductWithRelations): AdminProductDT
 export type AdminOrderLineDTO = {
   consec: number;
   productId: string;
+  codigo: string;
   name: string;
   image: string;
   unitPrice: number;
@@ -135,6 +136,7 @@ function toAdminOrderLineDTO(detail: DetalleWithProduct): AdminOrderLineDTO {
   return {
     consec: detail.consec,
     productId: detail.productoId,
+    codigo: detail.producto.codigo,
     name: detail.producto.nombre,
     image: primaryImageUrl(detail.producto.imagenes),
     unitPrice: detail.precioUnitario,

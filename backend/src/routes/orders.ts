@@ -37,10 +37,6 @@ const createOrderSchema = z.object({
     .min(1),
 });
 
-const catalogLabels: Record<"detal" | "mayor", string> = {
-  detal: "Detal",
-  mayor: "Mayor",
-};
 
 export async function orderRoutes(app: FastifyInstance) {
   app.post("/api/orders", async (request, reply) => {
@@ -52,7 +48,7 @@ export async function orderRoutes(app: FastifyInstance) {
     try {
       const order = await createOrder(app.prisma, parsed.data);
       const whatsappNumber = config.WHATSAPP_NUMBER;
-      const whatsappMessage = buildWhatsAppMessage(order, catalogLabels[parsed.data.type]);
+      const whatsappMessage = buildWhatsAppMessage(order, parsed.data.type);
       const whatsappUrl = buildWhatsAppUrl(whatsappNumber, whatsappMessage);
 
       return reply.status(201).send({

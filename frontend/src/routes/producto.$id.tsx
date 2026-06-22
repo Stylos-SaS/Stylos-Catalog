@@ -102,9 +102,11 @@ function ProductDetail() {
               {compareAt && (
                 <span className="text-base text-muted-foreground line-through">{formatCOP(compareAt)}</span>
               )}
-              <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                {CATALOG_SHORT_LABEL}
-              </span>
+              {IS_MAYOR_CATALOG && (
+                <span className="rounded-full bg-secondary px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                  {CATALOG_SHORT_LABEL}
+                </span>
+              )}
             </div>
             <p className="text-sm leading-relaxed text-muted-foreground">{product.description}</p>
 

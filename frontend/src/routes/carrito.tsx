@@ -4,7 +4,7 @@ import { Minus, Plus, Trash2, ShoppingBag, MessageCircle, ArrowLeft, Loader2, Ph
 import { toast } from "sonner";
 import { StoreShell } from "@/components/storefront/StoreShell";
 import { useCart, useCartTotals } from "@/lib/cart";
-import { API_BASE_URL, CATALOG_MODE, CATALOG_SHORT_LABEL, CART_STORAGE_KEY } from "@/lib/config";
+import { API_BASE_URL, CATALOG_MODE, CATALOG_SHORT_LABEL, CART_STORAGE_KEY, IS_MAYOR_CATALOG } from "@/lib/config";
 import { formatCOP } from "@/lib/format";
 import { createOrder } from "@/lib/api";
 import { WHATSAPP_NUMBER } from "@/lib/config";
@@ -84,7 +84,8 @@ function Cart() {
       const lines = items
         .map((i) => `• ${i.name} x${i.quantity} — ${formatCOP(i.price * i.quantity)}`)
         .join("%0A");
-      const msg = `¡Hola Stylos! Quiero finalizar este pedido (${CATALOG_SHORT_LABEL}):%0A%0AMi WhatsApp: ${normalizedPhone}%0A%0A${lines}%0A%0ATotal: ${formatCOP(subtotal)}`;
+      const orderLabel = IS_MAYOR_CATALOG ? ` (${CATALOG_SHORT_LABEL})` : "";
+      const msg = `¡Hola Stylos! Quiero finalizar este pedido${orderLabel}:%0A%0AMi WhatsApp: ${normalizedPhone}%0A%0A${lines}%0A%0ATotal: ${formatCOP(subtotal)}`;
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
       navigate({ to: "/confirmacion" });
     } catch (error) {
@@ -229,10 +230,12 @@ function Cart() {
                   Te conectaremos directamente con nuestra asesora.
                 </p>
               </div>
-              <div className="rounded-3xl bg-gradient-soft p-4 text-xs text-muted-foreground">
-                Tipo de precio:{" "}
-                <span className="font-semibold text-foreground">{CATALOG_SHORT_LABEL}</span>
-              </div>
+              {IS_MAYOR_CATALOG && (
+                <div className="rounded-3xl bg-gradient-soft p-4 text-xs text-muted-foreground">
+                  Tipo de precio:{" "}
+                  <span className="font-semibold text-foreground">{CATALOG_SHORT_LABEL}</span>
+                </div>
+              )}
             </aside>
           </div>
         )}

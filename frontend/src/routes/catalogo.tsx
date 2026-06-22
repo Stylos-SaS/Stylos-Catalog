@@ -10,6 +10,7 @@ import {
   CATALOG_LABEL,
   CATALOG_TITLE,
   IS_MAYOR_CATALOG,
+  SHOW_CATALOG_MODE_UI,
 } from "@/lib/config";
 import { categoriesQueryOptions, productsQueryOptions } from "@/lib/queries";
 import { cn } from "@/lib/utils";
@@ -29,13 +30,13 @@ export const Route = createFileRoute("/catalogo")({
       {
         title: IS_MAYOR_CATALOG
           ? "Catálogo Mayorista — Stylos Variedades"
-          : "Catálogo Detal — Stylos Variedades",
+          : "Catálogo — Stylos Variedades",
       },
       {
         name: "description",
         content: IS_MAYOR_CATALOG
           ? "Precios especiales al por mayor para tu negocio."
-          : "Catálogo completo con precios al detal.",
+          : "Catálogo completo de hogar, accesorios, belleza, regalos y papelería.",
       },
     ],
   }),
@@ -127,10 +128,14 @@ export function Catalog() {
         <div className="mx-auto max-w-7xl px-6 py-10">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-primary shadow-soft">
-                {CATALOG_LABEL}
-              </div>
-              <h1 className="font-display mt-3 text-3xl font-bold sm:text-4xl">{CATALOG_TITLE}</h1>
+              {SHOW_CATALOG_MODE_UI && (
+                <div className="inline-flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-primary shadow-soft">
+                  {CATALOG_LABEL}
+                </div>
+              )}
+              <h1 className={cn("font-display text-3xl font-bold sm:text-4xl", SHOW_CATALOG_MODE_UI && "mt-3")}>
+                {CATALOG_TITLE}
+              </h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 {productsQuery.isLoading ? "Cargando..." : `${total} producto${total === 1 ? "" : "s"} disponibles`}
               </p>

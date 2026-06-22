@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import favicon from "@/assets/stylos-logo.jpeg";
+import { IS_MAYOR_CATALOG } from "@/lib/config";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
@@ -81,8 +82,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Stylos Variedades — Hogar, regalos y accesorios" },
       {
         name: "description",
-        content:
-          "Stylos Variedades: tienda de variedades con catálogo al detal y al por mayor. Hogar, accesorios, belleza, regalos y papelería.",
+        content: IS_MAYOR_CATALOG
+          ? "Stylos Variedades: catálogo mayorista. Hogar, accesorios, belleza, regalos y papelería."
+          : "Stylos Variedades: hogar, accesorios, belleza, regalos y papelería. Pide por WhatsApp.",
       },
       { property: "og:title", content: "Stylos Variedades" },
       {

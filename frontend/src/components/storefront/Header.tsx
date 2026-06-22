@@ -3,7 +3,7 @@ import { Search, ShoppingBag, Menu, X, Heart } from "lucide-react";
 import { useState } from "react";
 import logo from "@/assets/stylos-logo.jpeg";
 import { useCartTotals } from "@/lib/cart";
-import { CATALOG_LABEL } from "@/lib/config";
+import { STOREFRONT_BANNER_LABEL } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
 export function Header() {
@@ -98,7 +98,7 @@ export function Header() {
         </div>
       )}
 
-      <ModeBanner label={CATALOG_LABEL} />
+      <ModeBanner label={STOREFRONT_BANNER_LABEL} />
     </header>
   );
 }

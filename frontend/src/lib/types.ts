@@ -51,6 +51,7 @@ export type OrderType = "detal" | "mayor";
 export type AdminOrderLine = {
   consec: number;
   productId: string;
+  codigo: string;
   name: string;
   image: string;
   unitPrice: number;

@@ -8,6 +8,13 @@ export const CATALOG_MODE = parseCatalogMode(import.meta.env.VITE_CATALOG_MODE);
 
 export const IS_MAYOR_CATALOG = CATALOG_MODE === "mayor";
 
+/** When false, storefront must not expose detal/mayor catalog distinction to clients. */
+export const SHOW_CATALOG_MODE_UI = IS_MAYOR_CATALOG;
+
+export const STOREFRONT_BANNER_LABEL = IS_MAYOR_CATALOG
+  ? "Precios al por Mayor"
+  : "Pedidos por WhatsApp";
+
 export const CATALOG_LABEL = IS_MAYOR_CATALOG ? "Precios al por Mayor" : "Precios al Detal";
 
 export const CATALOG_TITLE = IS_MAYOR_CATALOG ? "Catálogo Mayorista" : "Catálogo";

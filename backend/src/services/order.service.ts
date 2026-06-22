@@ -107,14 +107,16 @@ export function formatCop(amount: number) {
 
 export function buildWhatsAppMessage(
   order: Awaited<ReturnType<typeof createOrder>>,
-  catalogLabel: string,
+  type: TipoPedido,
 ) {
   const lines = order.detalles.map(
     (d) => `• ${d.producto.nombre} x${d.cantidad} — ${formatCop(d.subtotal)}`,
   );
 
+  const catalogSuffix = type === "mayor" ? " (Mayor)" : "";
+
   return [
-    `¡Hola Stylos! Quiero finalizar este pedido (${catalogLabel}):`,
+    `¡Hola Stylos! Quiero finalizar este pedido${catalogSuffix}:`,
     "",
     `Pedido: ${formatPedidoNumero(order.numeroPedido)}`,
     order.contactoCliente ? `Mi WhatsApp: ${order.contactoCliente}` : "",
