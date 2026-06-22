@@ -44,3 +44,42 @@ export type ProductsQueryParams = {
   page?: number;
   limit?: number;
 };
+
+export type OrderStatus = "pendiente" | "completado" | "cancelado";
+export type OrderType = "detal" | "mayor";
+
+export type AdminOrderLine = {
+  consec: number;
+  productId: string;
+  name: string;
+  image: string;
+  unitPrice: number;
+  quantity: number;
+  subtotal: number;
+  available: boolean;
+};
+
+export type AdminOrder = {
+  id: string;
+  number: string;
+  date: string;
+  type: OrderType;
+  status: OrderStatus;
+  contactoCliente: string | null;
+  customer: string;
+  itemCount: number;
+  total: number;
+  items: AdminOrderLine[];
+};
+
+export type AdminOrderListItem = Omit<AdminOrder, "items">;
+
+export type AdminOrderListResponse = {
+  items: AdminOrderListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};

@@ -1,29 +1,30 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Search, Eye } from "lucide-react";
-import { orders } from "@/lib/data";
+import { Search, Eye, Loader2, AlertCircle, PackageOpen } from "lucide-react";
 import { formatCOP, formatDate } from "@/lib/format";
 import { StatusBadge, TypeBadge } from "./admin.index";
 import { cn } from "@/lib/utils";
+import { useAdminOrders } from "@/lib/admin-order-queries";
 
 export const Route = createFileRoute("/admin/pedidos/")({
   head: () => ({ meta: [{ title: "Pedidos — Stylos Admin" }] }),
   component: OrdersAdmin,
 });
 
-const tabs = ["Todos", "Pendientes", "Completados", "Cancelados"] as const;
+const tabs = [
+  { label: "Todos", status: undefined },
+  { label: "Pendientes", status: "pendiente" as const },
+  { label: "Completados", status: "completado" as const },
+  { label: "Cancelados", status: "cancelado" as const },
+];
 
 function OrdersAdmin() {
-  const [tab, setTab] = useState<(typeof tabs)[number]>("Todos");
+  const [tabIndex, setTabIndex] = useState(0);
   const [q, setQ] = useState("");
 
-  const filtered = orders.filter((o) => {
-    if (tab === "Pendientes" && o.status !== "pendiente") return false;
-    if (tab === "Completados" && o.status !== "completado") return false;
-    if (tab === "Cancelados" && o.status !== "cancelado") return false;
-    if (q && !o.number.toLowerCase().includes(q.toLowerCase()) && !o.customer.toLowerCase().includes(q.toLowerCase())) return false;
-    return true;
-  });
+  const status = tabs[tabIndex]?.status;
+  const { data, isLoading, error } = useAdminOrders({ q, status });
+  const orders = data?.items ?? [];
 
   return (
     <div className="space-y-6">
@@ -35,16 +36,16 @@ function OrdersAdmin() {
       <div className="rounded-2xl border border-border bg-card shadow-soft overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
           <div className="flex gap-1 rounded-full bg-secondary p-1">
-            {tabs.map((t) => (
+            {tabs.map((t, i) => (
               <button
-                key={t}
-                onClick={() => setTab(t)}
+                key={t.label}
+                onClick={() => setTabIndex(i)}
                 className={cn(
                   "rounded-full px-4 py-1.5 text-xs font-semibold transition",
-                  tab === t ? "bg-background shadow-soft text-primary" : "text-muted-foreground",
+                  tabIndex === i ? "bg-background shadow-soft text-primary" : "text-muted-foreground",
                 )}
               >
-                {t}
+                {t.label}
               </button>
             ))}
           </div>
@@ -59,33 +60,51 @@ function OrdersAdmin() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
-              <tr>
-                <th className="px-5 py-3">Nº Pedido</th>
-                <th className="px-5 py-3 hidden md:table-cell">Cliente</th>
-                <th className="px-5 py-3 hidden sm:table-cell">Fecha</th>
-                <th className="px-5 py-3">Tipo</th>
-                <th className="px-5 py-3">Estado</th>
-                <th className="px-5 py-3 hidden sm:table-cell">Productos</th>
-                <th className="px-5 py-3 text-right">Total</th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((o) => {
-                const total = o.items.reduce((a, i) => a + i.unitPrice * i.quantity, 0);
-                const qty = o.items.reduce((a, i) => a + i.quantity, 0);
-                return (
+        {isLoading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center gap-2 p-16 text-center">
+            <AlertCircle className="h-10 w-10 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">{error.message}</p>
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 p-16 text-center">
+            <PackageOpen className="h-10 w-10 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">No hay pedidos que coincidan.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-5 py-3">Nº Pedido</th>
+                  <th className="px-5 py-3 hidden md:table-cell">Cliente</th>
+                  <th className="px-5 py-3 hidden sm:table-cell">Fecha</th>
+                  <th className="px-5 py-3">Tipo</th>
+                  <th className="px-5 py-3">Estado</th>
+                  <th className="px-5 py-3 hidden sm:table-cell">Productos</th>
+                  <th className="px-5 py-3 text-right">Total</th>
+                  <th className="px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((o) => (
                   <tr key={o.id} className="border-t border-border hover:bg-secondary/20">
                     <td className="px-5 py-3 font-semibold">{o.number}</td>
                     <td className="px-5 py-3 hidden md:table-cell">{o.customer}</td>
                     <td className="px-5 py-3 hidden sm:table-cell text-muted-foreground">{formatDate(o.date)}</td>
-                    <td className="px-5 py-3"><TypeBadge type={o.type} /></td>
-                    <td className="px-5 py-3"><StatusBadge status={o.status} /></td>
-                    <td className="px-5 py-3 hidden sm:table-cell">{qty}</td>
-                    <td className="px-5 py-3 text-right font-display font-bold text-primary">{formatCOP(total)}</td>
+                    <td className="px-5 py-3">
+                      <TypeBadge type={o.type} />
+                    </td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={o.status} />
+                    </td>
+                    <td className="px-5 py-3 hidden sm:table-cell">{o.itemCount}</td>
+                    <td className="px-5 py-3 text-right font-display font-bold text-primary">
+                      {formatCOP(o.total)}
+                    </td>
                     <td className="px-5 py-3 text-right">
                       <Link
                         to="/admin/pedidos/$id"
@@ -96,11 +115,11 @@ function OrdersAdmin() {
                       </Link>
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

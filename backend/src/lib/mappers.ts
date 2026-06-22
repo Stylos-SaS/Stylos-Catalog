@@ -1,4 +1,13 @@
-import type { Producto, ProductoImagen, Categoria } from "../generated/prisma/client.js";
+import type {
+  Producto,
+  ProductoImagen,
+  Categoria,
+  Pedido,
+  DetallePedido,
+  EstadoPedido,
+  TipoPedido,
+} from "../generated/prisma/client.js";
+import { formatPedidoNumero } from "./pedido-number.js";
 
 export type ProductDTO = {
   id: string;
@@ -74,4 +83,85 @@ export function toAdminProductDTO(product: ProductWithRelations): AdminProductDT
     ...toProductDTO(product),
     imageAssets,
   };
+}
+
+export type AdminOrderLineDTO = {
+  consec: number;
+  productId: string;
+  name: string;
+  image: string;
+  unitPrice: number;
+  quantity: number;
+  subtotal: number;
+  available: boolean;
+};
+
+export type AdminOrderDTO = {
+  id: string;
+  number: string;
+  date: string;
+  type: TipoPedido;
+  status: EstadoPedido;
+  contactoCliente: string | null;
+  customer: string;
+  itemCount: number;
+  total: number;
+  items: AdminOrderLineDTO[];
+};
+
+export type AdminOrderListItemDTO = Omit<AdminOrderDTO, "items">;
+
+type ProductWithImages = Producto & { imagenes: ProductoImagen[] };
+
+type DetalleWithProduct = DetallePedido & { producto: ProductWithImages };
+
+type PedidoWithDetails = Pedido & { detalles: DetalleWithProduct[] };
+
+function primaryImageUrl(imagenes: ProductoImagen[]): string {
+  const sorted = [...imagenes].sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal));
+  return sorted[0]?.url ?? "";
+}
+
+export function formatContactoCliente(phone: string | null): string {
+  if (!phone) return "Sin contacto";
+  if (phone.length === 12 && phone.startsWith("57")) {
+    const local = phone.slice(2);
+    return `+57 ${local.slice(0, 3)} ${local.slice(3, 6)} ${local.slice(6)}`;
+  }
+  return phone;
+}
+
+function toAdminOrderLineDTO(detail: DetalleWithProduct): AdminOrderLineDTO {
+  return {
+    consec: detail.consec,
+    productId: detail.productoId,
+    name: detail.producto.nombre,
+    image: primaryImageUrl(detail.producto.imagenes),
+    unitPrice: detail.precioUnitario,
+    quantity: detail.cantidad,
+    subtotal: detail.subtotal,
+    available: detail.disponible,
+  };
+}
+
+export function toAdminOrderDTO(order: PedidoWithDetails): AdminOrderDTO {
+  const items = order.detalles.map(toAdminOrderLineDTO);
+
+  return {
+    id: order.id,
+    number: formatPedidoNumero(order.numeroPedido),
+    date: order.fechaCreacion.toISOString().slice(0, 10),
+    type: order.tipoPedido,
+    status: order.estado,
+    contactoCliente: order.contactoCliente,
+    customer: formatContactoCliente(order.contactoCliente),
+    itemCount: order.cantidadProductos,
+    total: order.total,
+    items,
+  };
+}
+
+export function toAdminOrderListItemDTO(order: PedidoWithDetails): AdminOrderListItemDTO {
+  const { items: _items, ...summary } = toAdminOrderDTO(order);
+  return summary;
 }
