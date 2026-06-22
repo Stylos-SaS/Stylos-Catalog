@@ -1,4 +1,5 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Toaster } from "sonner";
 import {
   LayoutDashboard,
   Package,
@@ -15,6 +16,8 @@ import {
 import { useState, type ReactNode } from "react";
 import logo from "@/assets/stylos-logo.jpeg";
 import { cn } from "@/lib/utils";
+import { adminInitials } from "@/lib/auth-storage";
+import { useAuth } from "@/lib/auth";
 import {
   Sheet,
   SheetContent,
@@ -35,9 +38,20 @@ export function AdminShell({ children, breadcrumbs }: { children?: ReactNode; br
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const user = useAuth((s) => s.user);
+  const clearSession = useAuth((s) => s.clearSession);
+  const displayName = user?.nombre ?? "Administrador";
+  const initials = adminInitials(displayName);
+
+  const logout = () => {
+    clearSession();
+    navigate({ to: "/admin/login" });
+  };
 
   return (
     <div className="min-h-screen flex bg-blush/40">
+      <Toaster position="top-right" theme="light" />
       {/* Sidebar */}
       <aside
         className={cn(
@@ -88,7 +102,10 @@ export function AdminShell({ children, breadcrumbs }: { children?: ReactNode; br
               </p>
             </div>
           )}
-          <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-sidebar-accent">
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-sidebar-accent"
+          >
             <LogOut className="h-4 w-4 shrink-0" />
             {!collapsed && <span>Cerrar sesión</span>}
           </button>
@@ -164,7 +181,10 @@ export function AdminShell({ children, breadcrumbs }: { children?: ReactNode; br
                         Mantén actualizadas las fotos para vender más rápido.
                       </p>
                     </div>
-                    <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-sidebar-accent">
+                    <button
+                      onClick={logout}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-sidebar-accent"
+                    >
                       <LogOut className="h-4 w-4 shrink-0" />
                       <span>Cerrar sesión</span>
                     </button>
@@ -183,11 +203,11 @@ export function AdminShell({ children, breadcrumbs }: { children?: ReactNode; br
             </button>
             <div className="hidden sm:flex items-center gap-3 rounded-full bg-card border border-border px-2 py-1 pr-4 shadow-soft shrink-0">
               <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-brand text-xs font-bold text-primary-foreground">
-                SV
+                {initials}
               </div>
               <div className="leading-tight">
-                <div className="text-xs font-semibold">Sofía Valencia</div>
-                <div className="text-[10px] text-muted-foreground">Administradora</div>
+                <div className="text-xs font-semibold">{displayName}</div>
+                <div className="text-[10px] text-muted-foreground">Administrador</div>
               </div>
             </div>
           </div>

@@ -13,6 +13,7 @@ export type ProductListParams = {
   page?: number;
   limit?: number;
   priceField?: "precioDetal" | "precioMayor";
+  activeOnly?: boolean;
 };
 
 function categoryFilter(category: string) {
@@ -29,6 +30,7 @@ export async function listProducts(prisma: PrismaClient, params: ProductListPara
   const skip = (page - 1) * limit;
 
   const where = {
+    ...(params.activeOnly ? { activo: true } : {}),
     ...(params.category ? categoryFilter(params.category) : {}),
     ...(params.q
       ? {
@@ -72,11 +74,18 @@ export async function listProducts(prisma: PrismaClient, params: ProductListPara
   };
 }
 
-export async function getProductById(prisma: PrismaClient, id: string) {
+export async function getProductById(
+  prisma: PrismaClient,
+  id: string,
+  options?: { activeOnly?: boolean },
+) {
   const product = await prisma.producto.findUnique({
     where: { id },
     include: productInclude,
   });
 
-  return product ? toProductDTO(product) : null;
+  if (!product) return null;
+  if (options?.activeOnly && !product.activo) return null;
+
+  return toProductDTO(product);
 }

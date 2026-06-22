@@ -28,6 +28,7 @@ export async function productRoutes(app: FastifyInstance) {
       page: query.page,
       limit: query.limit,
       priceField,
+      activeOnly: true,
     });
 
     return reply.send(result);
@@ -35,7 +36,7 @@ export async function productRoutes(app: FastifyInstance) {
 
   app.get("/api/products/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const product = await getProductById(app.prisma, id);
+    const product = await getProductById(app.prisma, id, { activeOnly: true });
 
     if (!product) {
       return reply.status(404).send({ error: "Product not found" });

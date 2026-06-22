@@ -34,6 +34,7 @@ model Producto {
   precioDetal   Int              @map("precio_detal")
   precioMayor   Int              @map("precio_mayor")
   categoriaId   String           @map("categoria_id")
+  activo        Boolean          @default(true)
   fechaCreacion DateTime         @default(now()) @map("fecha_creacion")
   categoria     Categoria        @relation(fields: [categoriaId], references: [id])
   imagenes      ProductoImagen[]

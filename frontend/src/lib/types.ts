@@ -14,6 +14,17 @@ export type Product = {
   priceWholesale: number;
   images: string[];
   createdAt: string;
+  active: boolean;
+};
+
+export type ProductImageAsset = {
+  url: string;
+  path: string;
+  esPrincipal: boolean;
+};
+
+export type AdminProduct = Product & {
+  imageAssets: ProductImageAsset[];
 };
 
 export type ProductListResponse = {

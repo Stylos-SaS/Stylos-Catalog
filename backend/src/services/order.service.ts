@@ -51,6 +51,11 @@ export async function createOrder(prisma: PrismaClient, input: CreateOrderInput)
       throw new OrderError("One or more products were not found", 404);
     }
 
+    const inactive = products.filter((p) => !p.activo);
+    if (inactive.length > 0) {
+      throw new OrderError("One or more products are not available", 400);
+    }
+
     const productMap = new Map(products.map((p) => [p.id, p]));
 
     const lineInputs: { productoId: string; cantidad: number; precioUnitario: number }[] = [];

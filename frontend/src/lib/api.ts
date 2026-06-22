@@ -1,5 +1,10 @@
 import { API_BASE_URL, CATALOG_MODE } from "./config";
 import type { Category, Product, ProductListResponse, ProductsQueryParams } from "./types";
+import type { AdminUser } from "./auth-storage";
+import { ApiError, apiFetch, apiFetchWithAuth } from "./api-core";
+import { useAuth } from "./auth";
+
+export { ApiError } from "./api-core";
 
 export type CreateOrderPayload = {
   type: typeof CATALOG_MODE;
@@ -26,32 +31,8 @@ export type CreateOrderResponse = {
   }[];
 };
 
-export class ApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number,
-  ) {
-    super(message);
-    this.name = "ApiError";
-  }
-}
-
-function requireApiBaseUrl(): string {
-  if (!API_BASE_URL) {
-    throw new ApiError("VITE_API_BASE_URL is not configured", 0);
-  }
-  return API_BASE_URL;
-}
-
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${requireApiBaseUrl()}${path}`, init);
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new ApiError(body || `Request failed (${res.status})`, res.status);
-  }
-
-  return res.json() as Promise<T>;
+function authToken(): string | null {
+  return useAuth.getState().token;
 }
 
 function buildProductsQuery(params: ProductsQueryParams = {}): string {
@@ -81,7 +62,27 @@ export function fetchProduct(id: string): Promise<Product> {
 export async function createOrder(payload: CreateOrderPayload): Promise<CreateOrderResponse> {
   return apiFetch("/api/orders", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
+}
+
+export type LoginPayload = {
+  username: string;
+  password: string;
+};
+
+export type LoginResponse = {
+  token: string;
+  user: AdminUser;
+};
+
+export function loginAdmin(payload: LoginPayload): Promise<LoginResponse> {
+  return apiFetch("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchAdminProfile(): Promise<{ user: AdminUser }> {
+  return apiFetchWithAuth("/api/auth/me", undefined, authToken());
 }

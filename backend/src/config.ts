@@ -12,8 +12,9 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url("SUPABASE_URL must be a valid URL"),
   SUPABASE_ANON_KEY: z.string().min(1, "SUPABASE_ANON_KEY is required (publishable key)"),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required (secret key)"),
-  WHATSAPP_NUMBER: z.string().min(1).default("573014039265"),
-  JWT_SECRET: z.string().optional(),
+  WHATSAPP_NUMBER: z.string().min(1).default("573001234567"),
+  JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
+  SUPABASE_STORAGE_BUCKET: z.string().min(1).default("product-images"),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -17,6 +17,7 @@ type SeedProduct = {
   precioMayor: number;
   fechaCreacion: string;
   imageCount?: number;
+  activo?: boolean;
 };
 
 const sampleProducts: SeedProduct[] = [
@@ -97,6 +98,7 @@ const sampleProducts: SeedProduct[] = [
     precioDetal: 26900,
     precioMayor: 18500,
     fechaCreacion: "2026-06-05",
+    activo: false,
   },
 ];
 
@@ -211,6 +213,7 @@ async function upsertProduct(product: SeedProduct) {
         precioDetal: product.precioDetal,
         precioMayor: product.precioMayor,
         categoriaId: categoria.id,
+        activo: product.activo ?? true,
         fechaCreacion: new Date(product.fechaCreacion),
         imagenes: { create: imagenes },
       },
@@ -225,6 +228,7 @@ async function upsertProduct(product: SeedProduct) {
       precioDetal: product.precioDetal,
       precioMayor: product.precioMayor,
       categoriaId: categoria.id,
+      activo: product.activo ?? true,
       fechaCreacion: new Date(product.fechaCreacion),
       imagenes: { create: imagenes },
     },

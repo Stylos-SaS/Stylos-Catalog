@@ -11,11 +11,22 @@ export type ProductDTO = {
   priceWholesale: number;
   images: string[];
   createdAt: string;
+  active: boolean;
 };
 
 export type CategoryDTO = {
   id: string;
   name: string;
+};
+
+export type ProductImageAssetDTO = {
+  url: string;
+  path: string;
+  esPrincipal: boolean;
+};
+
+export type AdminProductDTO = ProductDTO & {
+  imageAssets: ProductImageAssetDTO[];
 };
 
 type ProductWithRelations = Producto & {
@@ -39,6 +50,7 @@ export function toProductDTO(product: ProductWithRelations): ProductDTO {
     priceWholesale: product.precioMayor,
     images,
     createdAt: product.fechaCreacion.toISOString().slice(0, 10),
+    active: product.activo,
   };
 }
 
@@ -46,5 +58,20 @@ export function toCategoryDTO(category: Categoria): CategoryDTO {
   return {
     id: category.id,
     name: category.nombre,
+  };
+}
+
+export function toAdminProductDTO(product: ProductWithRelations): AdminProductDTO {
+  const imageAssets = [...product.imagenes]
+    .sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal))
+    .map((img) => ({
+      url: img.url,
+      path: img.path,
+      esPrincipal: img.esPrincipal,
+    }));
+
+  return {
+    ...toProductDTO(product),
+    imageAssets,
   };
 }
