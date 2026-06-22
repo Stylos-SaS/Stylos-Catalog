@@ -19,7 +19,7 @@ import {
 import { formatCOP, formatDate } from "@/lib/format";
 import { StatusBadge, TypeBadge } from "./admin.index";
 import { cn } from "@/lib/utils";
-import { useAdminOrder, useUpdateAdminOrder } from "@/lib/admin-order-queries";
+import { useAdminOrder, useUpdateAdminOrder, useUpdateAdminOrderStatus } from "@/lib/admin-order-queries";
 import { useAdminProducts } from "@/lib/admin-queries";
 import type { AdminOrderLine, OrderType, Product } from "@/lib/types";
 import { productPrimaryImage } from "@/lib/product-image";
@@ -49,6 +49,7 @@ function OrderDetail() {
   const { id } = Route.useParams();
   const { data: order, isLoading, error } = useAdminOrder(id);
   const updateOrder = useUpdateAdminOrder();
+  const updateOrderStatus = useUpdateAdminOrderStatus();
   const [items, setItems] = useState<AdminOrderLine[]>([]);
   const [replaceFor, setReplaceFor] = useState<string | null>(null);
   const [addingProduct, setAddingProduct] = useState(false);
@@ -99,6 +100,7 @@ function OrderDetail() {
   const debouncedSave = useDebouncedCallback(saveToServer, SAVE_DEBOUNCE_MS);
 
   const applyChange = (nextItems: AdminOrderLine[]) => {
+    if (order?.status !== "pendiente") return;
     setItems(nextItems);
     setHasPendingSave(true);
     debouncedSave(nextItems);
@@ -180,6 +182,34 @@ function OrderDetail() {
     applyChange(next);
   };
 
+  const handleComplete = async () => {
+    try {
+      await updateOrderStatus.mutateAsync({ id: order!.id, status: "completado" });
+      setHasPendingSave(false);
+      toast.success("Pedido marcado como completado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo completar el pedido");
+    }
+  };
+
+  const handleCancel = async () => {
+    if (
+      !window.confirm(
+        "¿Cancelar este pedido? Quedará marcado como cancelado y no podrás editarlo.",
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await updateOrderStatus.mutateAsync({ id: order!.id, status: "cancelado" });
+      setHasPendingSave(false);
+      toast.success("Pedido cancelado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "No se pudo cancelar el pedido");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-20">
@@ -203,11 +233,15 @@ function OrderDetail() {
   }
 
   const displayTotal = computeOrderTotal(items);
+  const isEditable = order.status === "pendiente";
   const saving = updateOrder.isPending;
+  const updatingStatus = updateOrderStatus.isPending;
+  const lineActionsLocked = saving || updatingStatus || !isEditable;
   const syncStatus = saving ? "saving" : hasPendingSave ? "pending" : "idle";
 
   const lineActions = {
-    saving,
+    editable: isEditable,
+    saving: lineActionsLocked,
     onToggleAvail: toggleAvail,
     onUpdateQuantity: updateQuantity,
     onReplace: setReplaceFor,
@@ -238,20 +272,31 @@ function OrderDetail() {
           >
             <Download className="h-4 w-4" /> Ver confirmación
           </button>
-          <button
-            disabled
-            title="Próximamente"
-            className="inline-flex items-center gap-2 rounded-full bg-success/15 text-success px-4 py-2 text-sm font-semibold opacity-60 cursor-not-allowed"
-          >
-            <CheckCircle2 className="h-4 w-4" /> Marcar completado
-          </button>
-          <button
-            disabled
-            title="Próximamente"
-            className="inline-flex items-center gap-2 rounded-full bg-destructive/10 text-destructive px-4 py-2 text-sm font-semibold opacity-60 cursor-not-allowed"
-          >
-            <Trash2 className="h-4 w-4" /> Eliminar
-          </button>
+          {isEditable && (
+            <>
+              <button
+                type="button"
+                disabled={updatingStatus || saving}
+                onClick={() => void handleComplete()}
+                className="inline-flex items-center gap-2 rounded-full bg-success/15 text-success px-4 py-2 text-sm font-semibold hover:bg-success/20 disabled:opacity-60"
+              >
+                {updatingStatus ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+                Marcar completado
+              </button>
+              <button
+                type="button"
+                disabled={updatingStatus || saving}
+                onClick={() => void handleCancel()}
+                className="inline-flex items-center gap-2 rounded-full bg-destructive/10 text-destructive px-4 py-2 text-sm font-semibold hover:bg-destructive/15 disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" /> Cancelar pedido
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -261,7 +306,7 @@ function OrderDetail() {
             <h3 className="font-display text-lg font-semibold">Productos del pedido</h3>
             <button
               onClick={() => setAddingProduct(true)}
-              disabled={saving}
+              disabled={lineActionsLocked}
               className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-3 py-1.5 text-xs font-semibold hover:bg-primary/15 disabled:opacity-60"
             >
               <Plus className="h-3.5 w-3.5" /> Agregar producto
@@ -316,6 +361,15 @@ function OrderDetail() {
               </p>
             )}
           </div>
+          {!isEditable && (
+            <div className="rounded-2xl border border-border bg-secondary/30 p-4 text-xs text-muted-foreground">
+              Este pedido está{" "}
+              <strong className="text-foreground">
+                {order.status === "completado" ? "completado" : "cancelado"}
+              </strong>
+              . Solo puedes ver la confirmación; la edición de líneas está bloqueada.
+            </div>
+          )}
           <div className="rounded-2xl bg-gradient-soft p-4 text-xs text-muted-foreground">
             Los precios mostrados son{" "}
             <strong className="text-foreground">
@@ -363,6 +417,7 @@ function OrderDetail() {
 }
 
 type LineActions = {
+  editable: boolean;
   saving: boolean;
   onToggleAvail: (productId: string) => void;
   onUpdateQuantity: (productId: string, quantity: number) => void;
@@ -438,6 +493,7 @@ function OrderDisplayRows({
 function OrderLineRow({
   line,
   nested = false,
+  editable,
   saving,
   onToggleAvail,
   onUpdateQuantity,
@@ -468,72 +524,89 @@ function OrderLineRow({
       </td>
       <td className="px-5 py-3 text-right">{formatCOP(line.unitPrice)}</td>
       <td className="px-5 py-3">
-        <div className="flex items-center justify-center gap-1">
-          <button
-            type="button"
-            onClick={() => onUpdateQuantity(line.productId, line.quantity - 1)}
-            disabled={saving || line.quantity <= 1}
-            className="grid h-7 w-7 place-items-center rounded-full hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Disminuir cantidad"
-          >
-            <Minus className="h-3.5 w-3.5" />
-          </button>
-          <span className="w-8 text-center text-sm font-semibold tabular-nums">
-            {line.quantity}
-          </span>
-          <button
-            type="button"
-            onClick={() => onUpdateQuantity(line.productId, line.quantity + 1)}
-            disabled={saving}
-            className="grid h-7 w-7 place-items-center rounded-full hover:bg-secondary disabled:opacity-40"
-            title="Aumentar cantidad"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </button>
-        </div>
+        {editable ? (
+          <div className="flex items-center justify-center gap-1">
+            <button
+              type="button"
+              onClick={() => onUpdateQuantity(line.productId, line.quantity - 1)}
+              disabled={saving || line.quantity <= 1}
+              className="grid h-7 w-7 place-items-center rounded-full hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Disminuir cantidad"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            <span className="w-8 text-center text-sm font-semibold tabular-nums">
+              {line.quantity}
+            </span>
+            <button
+              type="button"
+              onClick={() => onUpdateQuantity(line.productId, line.quantity + 1)}
+              disabled={saving}
+              className="grid h-7 w-7 place-items-center rounded-full hover:bg-secondary disabled:opacity-40"
+              title="Aumentar cantidad"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="text-center text-sm font-semibold tabular-nums">{line.quantity}</div>
+        )}
       </td>
       <td className="px-5 py-3 text-right font-semibold text-primary">
         {formatCOP(line.subtotal)}
       </td>
       <td className="px-5 py-3">
-        <button
-          onClick={() => onToggleAvail(line.productId)}
-          disabled={saving}
-          className={cn(
-            "rounded-full px-2.5 py-0.5 text-[11px] font-semibold disabled:opacity-60",
-            line.available ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
-          )}
-        >
-          {line.available ? "Disponible" : "No disponible"}
-        </button>
-      </td>
-      <td className="px-5 py-3">
-        <div className="flex justify-end gap-1">
+        {editable ? (
           <button
             onClick={() => onToggleAvail(line.productId)}
             disabled={saving}
-            title="Marcar no disponible"
-            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-warning/15 hover:text-foreground disabled:opacity-40"
+            className={cn(
+              "rounded-full px-2.5 py-0.5 text-[11px] font-semibold disabled:opacity-60",
+              line.available ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
+            )}
           >
-            <Ban className="h-3.5 w-3.5" />
+            {line.available ? "Disponible" : "No disponible"}
           </button>
-          <button
-            onClick={() => onReplace(line.productId)}
-            disabled={saving}
-            title="Reemplazar"
-            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40"
+        ) : (
+          <span
+            className={cn(
+              "rounded-full px-2.5 py-0.5 text-[11px] font-semibold",
+              line.available ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive",
+            )}
           >
-            <Replace className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={() => onRemove(line.productId)}
-            disabled={saving}
-            title="Eliminar"
-            className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
+            {line.available ? "Disponible" : "No disponible"}
+          </span>
+        )}
+      </td>
+      <td className="px-5 py-3">
+        {editable && (
+          <div className="flex justify-end gap-1">
+            <button
+              onClick={() => onToggleAvail(line.productId)}
+              disabled={saving}
+              title="Marcar no disponible"
+              className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-warning/15 hover:text-foreground disabled:opacity-40"
+            >
+              <Ban className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => onReplace(line.productId)}
+              disabled={saving}
+              title="Reemplazar"
+              className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40"
+            >
+              <Replace className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => onRemove(line.productId)}
+              disabled={saving}
+              title="Eliminar"
+              className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </td>
     </tr>
   );

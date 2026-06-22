@@ -134,4 +134,15 @@ export function updateAdminOrder(
   );
 }
 
+export function updateAdminOrderStatus(
+  id: string,
+  status: Exclude<OrderStatus, "pendiente">,
+): Promise<AdminOrder> {
+  return apiFetchWithAuth(
+    `/api/admin/orders/${id}/status`,
+    { method: "PATCH", body: JSON.stringify({ status }) },
+    token(),
+  );
+}
+
 export type { Category, Product };

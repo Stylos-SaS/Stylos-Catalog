@@ -1,4 +1,4 @@
-import type { PrismaClient, TipoPedido } from "../generated/prisma/client.js";
+import type { PrismaClient, TipoPedido, EstadoPedido } from "../generated/prisma/client.js";
 import { formatPedidoNumero } from "../lib/pedido-number.js";
 import { toAdminOrderDTO, toAdminOrderListItemDTO } from "../lib/mappers.js";
 import { computeLineSubtotal, summarizePedidoDetalles } from "./order-totals.js";
@@ -162,6 +162,10 @@ export async function updateAdminOrder(
       throw new OrderAdminError("Order not found", 404);
     }
 
+    if (order.estado !== "pendiente") {
+      throw new OrderAdminError("Only pending orders can be edited", 409);
+    }
+
     const products = await tx.producto.findMany({
       where: { id: { in: productIds } },
     });
@@ -235,6 +239,33 @@ export async function updateAdminOrder(
 
     return toAdminOrderDTO(updated);
   });
+}
+
+export async function updateAdminOrderStatus(
+  prisma: PrismaClient,
+  id: string,
+  status: Exclude<EstadoPedido, "pendiente">,
+) {
+  const order = await prisma.pedido.findUnique({
+    where: { id },
+    include: orderInclude,
+  });
+
+  if (!order) {
+    throw new OrderAdminError("Order not found", 404);
+  }
+
+  if (order.estado !== "pendiente") {
+    throw new OrderAdminError("Only pending orders can change status", 409);
+  }
+
+  const updated = await prisma.pedido.update({
+    where: { id },
+    data: { estado: status },
+    include: orderInclude,
+  });
+
+  return toAdminOrderDTO(updated);
 }
 
 export { formatPedidoNumero };

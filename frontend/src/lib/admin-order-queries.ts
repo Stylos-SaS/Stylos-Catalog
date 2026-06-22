@@ -3,6 +3,7 @@ import {
   fetchAdminOrder,
   fetchAdminOrders,
   updateAdminOrder,
+  updateAdminOrderStatus,
   type UpdateAdminOrderLinePayload,
 } from "./admin-api";
 import type { OrderStatus } from "./types";
@@ -50,6 +51,24 @@ export function useUpdateAdminOrder() {
       id: string;
       items: UpdateAdminOrderLinePayload[];
     }) => updateAdminOrder(id, items),
+    onSuccess: (order) => {
+      queryClient.setQueryData(adminOrderKeys.detail(order.id), order);
+      queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
+    },
+  });
+}
+
+export function useUpdateAdminOrderStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: Exclude<OrderStatus, "pendiente">;
+    }) => updateAdminOrderStatus(id, status),
     onSuccess: (order) => {
       queryClient.setQueryData(adminOrderKeys.detail(order.id), order);
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });

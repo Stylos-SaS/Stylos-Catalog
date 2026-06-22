@@ -5,6 +5,7 @@ import {
   listAdminOrders,
   OrderAdminError,
   updateAdminOrder,
+  updateAdminOrderStatus,
 } from "../services/admin-order.service.js";
 
 const listQuerySchema = z.object({
@@ -22,6 +23,10 @@ const lineSchema = z.object({
 
 const updateOrderSchema = z.object({
   items: z.array(lineSchema).min(1),
+});
+
+const updateOrderStatusSchema = z.object({
+  status: z.enum(["completado", "cancelado"]),
 });
 
 function handleAdminOrderError(error: unknown, reply: import("fastify").FastifyReply) {
@@ -64,6 +69,21 @@ export async function adminOrderRoutes(app: FastifyInstance) {
 
     try {
       const order = await updateAdminOrder(app.prisma, id, parsed.data.items);
+      return reply.send(order);
+    } catch (error) {
+      return handleAdminOrderError(error, reply);
+    }
+  });
+
+  app.patch("/api/admin/orders/:id/status", auth, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const parsed = updateOrderStatusSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.status(400).send({ error: parsed.error.flatten().fieldErrors });
+    }
+
+    try {
+      const order = await updateAdminOrderStatus(app.prisma, id, parsed.data.status);
       return reply.send(order);
     } catch (error) {
       return handleAdminOrderError(error, reply);
