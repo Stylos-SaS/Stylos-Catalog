@@ -1,3 +1,5 @@
+import { APP_TIMEZONE, parseAppDate } from "./timezone";
+
 export const formatCOP = (n: number) =>
   new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -6,4 +8,9 @@ export const formatCOP = (n: number) =>
   }).format(n);
 
 export const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
+  parseAppDate(iso).toLocaleDateString("es-CO", {
+    timeZone: APP_TIMEZONE,
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });

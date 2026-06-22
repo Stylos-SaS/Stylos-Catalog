@@ -3,6 +3,7 @@ import type {
   AdminOrder,
   AdminOrderListResponse,
   AdminProduct,
+  AdminDashboard,
   Category,
   OrderStatus,
   Product,
@@ -143,6 +144,10 @@ export function updateAdminOrderStatus(
     { method: "PATCH", body: JSON.stringify({ status }) },
     token(),
   );
+}
+
+export function fetchAdminDashboard(): Promise<AdminDashboard> {
+  return apiFetchWithAuth("/api/admin/dashboard", undefined, token());
 }
 
 export type { Category, Product };

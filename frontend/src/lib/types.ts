@@ -84,3 +84,17 @@ export type AdminOrderListResponse = {
     totalPages: number;
   };
 };
+
+export type AdminDashboardWeeklySale = {
+  date: string;
+  total: number;
+};
+
+export type AdminDashboard = {
+  totalSales: number;
+  orderCounts: Record<OrderStatus, number>;
+  totalProducts: number;
+  recentOrders: AdminOrderListItem[];
+  recentProducts: Product[];
+  weeklySales: AdminDashboardWeeklySale[];
+};

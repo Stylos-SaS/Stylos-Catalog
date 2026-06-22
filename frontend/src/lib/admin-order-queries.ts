@@ -7,6 +7,7 @@ import {
   type UpdateAdminOrderLinePayload,
 } from "./admin-api";
 import type { OrderStatus } from "./types";
+import { adminDashboardKeys } from "./admin-dashboard-queries";
 
 export const adminOrderKeys = {
   all: ["admin", "orders"] as const,
@@ -54,6 +55,7 @@ export function useUpdateAdminOrder() {
     onSuccess: (order) => {
       queryClient.setQueryData(adminOrderKeys.detail(order.id), order);
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
     },
   });
 }
@@ -72,6 +74,7 @@ export function useUpdateAdminOrderStatus() {
     onSuccess: (order) => {
       queryClient.setQueryData(adminOrderKeys.detail(order.id), order);
       queryClient.invalidateQueries({ queryKey: adminOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
     },
   });
 }

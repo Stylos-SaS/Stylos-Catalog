@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { categoriesQueryOptions } from "./queries";
+import { adminDashboardKeys } from "./admin-dashboard-queries";
 import {
   createAdminProduct,
   deleteAdminProduct,
@@ -43,6 +44,7 @@ export function useSaveAdminProduct() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminProductKeys.all });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
     },
   });
 }
@@ -55,6 +57,7 @@ export function useDeleteAdminProduct() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminProductKeys.all });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
     },
   });
 }
@@ -68,6 +71,7 @@ export function useToggleAdminProductActive() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminProductKeys.all });
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: adminDashboardKeys.all });
     },
   });
 }

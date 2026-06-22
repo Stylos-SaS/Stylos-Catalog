@@ -8,6 +8,7 @@ import type {
   TipoPedido,
 } from "../generated/prisma/client.js";
 import { formatPedidoNumero } from "./pedido-number.js";
+import { formatColombiaDateKey } from "./timezone.js";
 
 export type ProductDTO = {
   id: string;
@@ -58,7 +59,7 @@ export function toProductDTO(product: ProductWithRelations): ProductDTO {
     priceRetail: product.precioDetal,
     priceWholesale: product.precioMayor,
     images,
-    createdAt: product.fechaCreacion.toISOString().slice(0, 10),
+    createdAt: formatColombiaDateKey(product.fechaCreacion),
     active: product.activo,
   };
 }
@@ -152,7 +153,7 @@ export function toAdminOrderDTO(order: PedidoWithDetails): AdminOrderDTO {
   return {
     id: order.id,
     number: formatPedidoNumero(order.numeroPedido),
-    date: order.fechaCreacion.toISOString().slice(0, 10),
+    date: formatColombiaDateKey(order.fechaCreacion),
     type: order.tipoPedido,
     status: order.estado,
     contactoCliente: order.contactoCliente,
