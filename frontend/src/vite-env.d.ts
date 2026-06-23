@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_WHATSAPP_NUMBER?: string;
   readonly VITE_STORE_CONTACT_EMAIL?: string;
   readonly VITE_STORE_CONTACT_INSTAGRAM?: string;
+  readonly VITE_STORE_CONTACT_LOCATION?: string;
 }
 
 interface ImportMeta {

@@ -1,31 +1,76 @@
 # Stylos-Catalog
 
-Repository for the development of a catalog website for Stylos Variedades.
+Catálogo web y panel administrativo para **Stylos Variedades**: dos storefronts (detal / mayorista), backend compartido y gestión de pedidos vía WhatsApp.
+
+Especificación formal: [`docs/requisitos/documento_de_requisitos.md`](docs/requisitos/documento_de_requisitos.md)
+
+## Quick start (Docker full stack)
+
+Requisito previo: configurar [`backend/.env`](backend/.env) (copiar desde `backend/.env.example`).
+
+```bash
+# Desde la raíz del repo — backend + catálogo detal + catálogo mayor
+docker compose up --build
+```
+
+| Servicio | URL |
+|----------|-----|
+| Backend API | http://localhost:4000 |
+| Catálogo detal | http://localhost:3001 |
+| Catálogo mayorista | http://localhost:3002 |
+
+Admin accesible en cualquier frontend (p. ej. http://localhost:3001/admin/login).
+
+### Migraciones en Docker
+
+Antes del primer arranque (o tras nuevas migraciones Prisma):
+
+```bash
+docker build --target builder -t stylos-catalog-backend-builder ./backend
+docker run --rm --env-file backend/.env stylos-catalog-backend-builder pnpm exec prisma migrate deploy
+```
+
+Opcional — datos de demo:
+
+```bash
+docker run --rm --env-file backend/.env stylos-catalog-backend-builder pnpm db:seed
+```
+
+Solo frontends (sin backend en Docker): ver [`frontend/docker-compose.yml`](frontend/docker-compose.yml).
+
+---
 
 ## Backend
 
-The REST API lives in [`backend/`](backend/). Stack: Fastify, **Prisma 7** (driver adapter `@prisma/adapter-pg`), PostgreSQL (Supabase), TypeScript, Zod. Package manager: **pnpm**.
+REST API en [`backend/`](backend/). Stack: Fastify, **Prisma 7** (`@prisma/adapter-pg`), PostgreSQL (Supabase), TypeScript, Zod. Package manager: **pnpm**.
 
 ### Development
 
 ```bash
 cd backend
 cp .env.example .env
-# Fill in Supabase keys + PostgreSQL connection strings (see below)
+# Completar Supabase + PostgreSQL (ver abajo)
 pnpm install
-pnpm db:migrate   # first time only
-pnpm db:seed      # categories, sample products, admin user
+pnpm db:migrate   # primera vez o tras cambios de schema
+pnpm db:seed      # categorías, productos demo, usuario admin
 pnpm dev
 # → http://localhost:4000/health
-# → http://localhost:4000/api/categories
-# → http://localhost:4000/api/products
 ```
 
-If `pnpm` is not on your PATH, use `corepack enable` or `npx pnpm@9.15.4 install`.
+Si `pnpm` no está en PATH: `corepack enable` o `npx pnpm@9.15.4 install`.
 
-### Supabase credentials
+### Credenciales seed
 
-You already have these from **Project Settings → API**:
+Tras `pnpm db:seed`:
+
+| Campo | Valor |
+|-------|-------|
+| Usuario | `admin` |
+| Contraseña | valor de `ADMIN_SEED_PASSWORD` (default `admin123`) |
+
+### Supabase (API keys)
+
+Desde **Project Settings → API**:
 
 | Variable | Supabase dashboard |
 |----------|-------------------|
@@ -33,92 +78,124 @@ You already have these from **Project Settings → API**:
 | `SUPABASE_ANON_KEY` | Publishable (anon) key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret (service_role) key |
 
-These keys power **Storage** and future Supabase features. They are **not** the database password.
+Estas keys alimentan **Storage** (imágenes de productos). **No** son la contraseña de PostgreSQL.
 
-### PostgreSQL connection strings (required for Prisma)
+### PostgreSQL (Prisma)
 
-Prisma talks to PostgreSQL directly — you also need the **database password** from when you created the Supabase project.
+Desde **Project Settings → Database → Connection string**:
 
-In **Project Settings → Database → Connection string**:
+| Variable | Supabase option | Puerto |
+|----------|-----------------|--------|
+| `DATABASE_URL` | Transaction pooler | 6543 — runtime de la API |
+| `DIRECT_DATABASE_URL` | Direct connection | 5432 — migraciones Prisma |
 
-| Variable | Supabase option | Port |
-|----------|-----------------|------|
-| `DATABASE_URL` | **Transaction pooler** | 6543 — used by the API at runtime |
-| `DIRECT_DATABASE_URL` | **Direct connection** | 5432 — used by `pnpm db:migrate` |
-
-Replace `[YOUR-PASSWORD]` with your database password (not the service role key).
-
-### API endpoints (public)
+### API endpoints (públicos)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/health` | Health check + DB status |
-| `GET` | `/api/categories` | Product categories |
-| `GET` | `/api/products` | Product list (`?category=&q=&sort=&page=&limit=&mode=`) |
-| `GET` | `/api/products/:id` | Product detail by UUID |
-| `POST` | `/api/orders` | Create order (persists + returns WhatsApp URL) |
+| `GET` | `/health` | Health check + estado DB |
+| `GET` | `/api/categories` | Categorías |
+| `GET` | `/api/products` | Listado (`?category=&q=&sort=&page=&limit=&mode=`) |
+| `GET` | `/api/products/:id` | Detalle de producto |
+| `GET` | `/api/settings/store` | WhatsApp y contacto del footer (configurable en admin) |
+| `POST` | `/api/orders` | Crear pedido + URL de WhatsApp |
 
-### Environment variables
+### API endpoints (admin, JWT)
+
+| Área | Rutas |
+|------|-------|
+| Auth | `POST /api/auth/login`, `GET/PATCH /api/auth/me`, `PATCH /api/auth/password` |
+| Dashboard | `GET /api/admin/dashboard` |
+| Productos | CRUD + `POST /api/admin/products/upload-image` |
+| Categorías | CRUD `/api/admin/categories` |
+| Pedidos | Listado, detalle, edición, cambio de estado |
+| Tienda | `GET/PATCH /api/admin/store-settings` |
+
+### Environment variables (backend)
 
 | Variable | Description |
 |----------|-------------|
-| `PORT` | API listen port (default `4000`) |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_ANON_KEY` | Publishable anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Secret service role key (backend only) |
-| `DATABASE_URL` | PostgreSQL pooler URL (port 6543) |
-| `DIRECT_DATABASE_URL` | PostgreSQL direct URL (port 5432, migrations) |
-| `ADMIN_SEED_PASSWORD` | Initial admin password for seed (default `admin123`) |
-| `JWT_SECRET` | Admin auth secret (Fase 5+) |
+| `PORT` | Puerto API (default `4000`) |
+| `NODE_ENV` | `development` / `production` / `test` |
+| `CORS_ORIGINS` | Orígenes permitidos (comma-separated) |
+| `SUPABASE_URL` | URL del proyecto Supabase |
+| `SUPABASE_ANON_KEY` | Anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (solo backend) |
+| `SUPABASE_STORAGE_BUCKET` | Bucket de imágenes (default `product-images`) |
+| `DATABASE_URL` | PostgreSQL pooler (6543) |
+| `DIRECT_DATABASE_URL` | PostgreSQL directo (5432, migraciones) |
+| `JWT_SECRET` | Secreto JWT admin (mín. 16 caracteres, **requerido**) |
+| `ADMIN_SEED_PASSWORD` | Contraseña inicial del admin en seed |
+| `WHATSAPP_NUMBER` | WhatsApp fallback (E.164 sin `+`) |
+| `STORE_CONTACT_EMAIL` | Email fallback del footer |
+| `STORE_CONTACT_INSTAGRAM` | Instagram fallback del footer |
+| `STORE_CONTACT_LOCATION` | Dirección/ubicación fallback del footer |
 
-When connecting the frontend, set `VITE_API_BASE_URL=http://localhost:4000` in `frontend/.env`.
+Los valores de tienda en runtime se persisten en BD vía `/admin/perfil`; las variables `WHATSAPP_NUMBER` y `STORE_CONTACT_*` son fallback cuando aún no hay fila en `configuracion_tienda`.
+
+---
 
 ## Frontend
 
-The storefront and admin dashboard live in [`frontend/`](frontend/). Stack: React 19, TanStack Start, Tailwind CSS 4, Zustand.
+Storefront + admin en [`frontend/`](frontend/). Stack: React 19, TanStack Start, Tailwind CSS 4, Zustand. Package manager: **pnpm**.
 
-Each catalog deployment (detal / mayorista) is a **separate build** of the same codebase, configured with `VITE_CATALOG_MODE`. Both connect to the same backend via `VITE_API_BASE_URL`.
+Cada despliegue de catálogo (detal / mayorista) es un **build separado** con `VITE_CATALOG_MODE`. Ambos usan el mismo backend.
 
 ### Development
 
 ```bash
 cd frontend
 cp .env.example .env
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
-Set `VITE_CATALOG_MODE=detal` or `VITE_CATALOG_MODE=mayor` in `.env` before starting dev.
+Usar `VITE_CATALOG_MODE=detal` o `mayor` en `.env` según el catálogo a probar.
 
-### Environment variables
+### Environment variables (frontend)
 
-| Variable | Values | Description |
-|----------|--------|-------------|
-| `VITE_CATALOG_MODE` | `detal` (default) or `mayor` | Catalog pricing mode for this deployment |
-| `VITE_API_BASE_URL` | URL | Shared backend API (when available) |
-| `VITE_WHATSAPP_NUMBER` | E.164 without `+` | WhatsApp checkout number |
+| Variable | Description |
+|----------|-------------|
+| `VITE_CATALOG_MODE` | `detal` (default) o `mayor` — precios de este despliegue |
+| `VITE_API_BASE_URL` | URL del backend (requerido para catálogo y checkout) |
+| `VITE_WHATSAPP_NUMBER` | Fallback WhatsApp si la API no responde |
+| `VITE_STORE_CONTACT_EMAIL` | Fallback email del footer |
+| `VITE_STORE_CONTACT_INSTAGRAM` | Fallback Instagram del footer |
+| `VITE_STORE_CONTACT_LOCATION` | Fallback dirección del footer |
 
-### Key routes
+En producción, WhatsApp y contacto del footer se configuran en **Admin → Perfil**. Las `VITE_*` de contacto solo aplican como fallback cuando `GET /api/settings/store` no está disponible.
+
+### Rutas storefront
 
 | Route | Description |
 |-------|-------------|
 | `/` | Home |
-| `/catalogo` | Product catalog (prices per `VITE_CATALOG_MODE`) |
-| `/mayorista` | Redirects to `/catalogo` |
-| `/carrito` | Shopping cart + WhatsApp checkout |
-| `/admin` | Admin dashboard (mock data, no auth yet) |
+| `/catalogo` | Catálogo (búsqueda, filtros, paginación) |
+| `/producto/:id` | Detalle de producto |
+| `/mayorista` | Redirige a `/catalogo` |
+| `/carrito` | Carrito + checkout WhatsApp |
+| `/confirmacion` | Pantalla post-pedido |
+
+### Rutas admin (JWT)
+
+| Route | Description |
+|-------|-------------|
+| `/admin/login` | Inicio de sesión |
+| `/admin` | Dashboard |
+| `/admin/productos` | Gestión de productos |
+| `/admin/categorias` | Gestión de categorías |
+| `/admin/pedidos` | Listado y edición de pedidos |
+| `/admin/perfil` | Perfil, contraseña, WhatsApp y contacto del catálogo |
 
 ### Build
 
 ```bash
 cd frontend
-VITE_CATALOG_MODE=detal npm run build
-npm run start
+VITE_CATALOG_MODE=detal pnpm build
+pnpm start
 ```
 
-### Docker
-
-Two catalog deployments from the same image build context:
+### Docker (solo frontend)
 
 ```bash
 cd frontend
@@ -126,23 +203,35 @@ docker compose up --build
 ```
 
 | Service | URL | Mode |
-|-------|-----|------|
+|---------|-----|------|
 | `frontend-detal` | http://localhost:3001 | detal |
 | `frontend-mayor` | http://localhost:3002 | mayor |
 
-To run a single deployment:
+---
 
-```bash
-docker build --build-arg VITE_CATALOG_MODE=mayor -t stylos-frontend-mayor .
-docker run -p 3000:3000 stylos-frontend-mayor
-```
+## Cumplimiento de requisitos (SRS)
 
-To stop:
+Referencia: [`docs/requisitos/documento_de_requisitos.md`](docs/requisitos/documento_de_requisitos.md)
 
-```bash
-docker compose down
-```
+| ID | Requisito | Estado |
+|----|-----------|--------|
+| RF-01 | Catálogo de productos | Implementado |
+| RF-02 | Dos frontends (detal / mayor) | Implementado |
+| RF-03 | Página de detalle | Implementado |
+| RF-04 | Carrito de compras | Implementado |
+| RF-05 | Creación de pedido + WhatsApp | Implementado |
+| RF-06 | Tipo de pedido (detal/mayor) | Implementado |
+| RF-07 | Autenticación admin | Implementado |
+| RF-08 | Gestión de productos (CRUD) | Implementado |
+| RF-09 | Gestión / listado de pedidos | Implementado |
+| RF-10 | Modificación de pedidos | Implementado |
+| RF-11 | Conservación del esquema de precios | Implementado |
+| RF-12 | Documento de confirmación (PDF/imagen) | Implementado |
+| RF-13 | Estados de pedidos | Implementado |
 
-## Requirements
+### Funcionalidades adicionales (fuera del SRS)
 
-See [`docs/requisitos/documento_de_requisitos.md`](docs/requisitos/documento_de_requisitos.md) for the full software requirements specification.
+- CRUD de categorías con emojis (`/admin/categorias`)
+- Configuración de tienda en admin: WhatsApp, email, Instagram, dirección
+- Perfil admin (nombre y cambio de contraseña)
+- Desactivación de productos con pedidos asociados (en lugar de borrado forzado)
