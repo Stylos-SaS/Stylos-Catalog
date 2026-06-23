@@ -50,6 +50,113 @@ Para levantar solo algunos servicios: `docker compose up --build backend fronten
 
 ---
 
+## Production deployment
+
+Arquitectura recomendada para producción:
+
+| Componente | Hosting | Notas |
+|------------|---------|-------|
+| Backend API | [Railway](https://railway.app) (Dockerfile) | Root dir `backend/`, rama `main` |
+| Catálogo detal | [Vercel](https://vercel.com) | Proyecto 1, `VITE_CATALOG_MODE=detal` |
+| Catálogo mayor | Vercel | Proyecto 2, `VITE_CATALOG_MODE=mayor` |
+| DB + Storage | Supabase | PostgreSQL + bucket `product-images` |
+
+### Orden de deploy
+
+1. **Supabase:** crear bucket público `product-images` (o el valor de `SUPABASE_STORAGE_BUCKET`).
+2. **Railway:** conectar repo GitHub, rama `main`, Root Directory `backend/`, builder **Dockerfile** (el mismo de `docker compose`).
+3. **Variables de entorno** en Railway (ver tabla abajo).
+4. **Deploy** en Railway.
+5. **Migraciones** desde local (carpeta `backend/`, `.env` apuntando a Supabase prod — no commitear):
+
+   ```bash
+   cd backend
+   pnpm exec prisma migrate deploy
+   ```
+
+6. **Seed admin** (solo la primera vez en prod — admin, categorías base y configuración de tienda):
+
+   ```bash
+   pnpm db:seed:admin
+   ```
+
+   Usar `ADMIN_SEED_PASSWORD` fuerte (32+ caracteres). Luego cambiar contraseña en **Admin → Perfil**.
+
+7. **Health check:** en Railway, configurar `/health`. Respuesta esperada: `{ "ok": true, "db": "connected" }`.
+8. **Vercel:** dos proyectos (detal y mayor), Root Directory `frontend/`, build `pnpm build`, start según TanStack Start/Nitro.
+9. **Admin → Perfil:** WhatsApp, email, Instagram, dirección y contraseña admin.
+
+### Railway
+
+| Setting | Valor |
+|---------|-------|
+| Root Directory | `backend` |
+| Builder | Dockerfile |
+| Branch | `main` |
+| Port | `4000` |
+| Health check | `/health` |
+
+**Variables obligatorias en Railway:**
+
+| Variable | Notas |
+|----------|-------|
+| `NODE_ENV` | `production` |
+| `JWT_SECRET` | Aleatorio, mín. 32 caracteres |
+| `DATABASE_URL` | Supabase pooler, puerto 6543 |
+| `DIRECT_DATABASE_URL` | Conexión directa, puerto 5432 (migraciones) |
+| `SUPABASE_URL` | Project URL |
+| `SUPABASE_ANON_KEY` | Anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role (solo backend) |
+| `SUPABASE_STORAGE_BUCKET` | Default `product-images` |
+| `CORS_ORIGINS` | URLs de los dos frontends Vercel, separadas por coma |
+| `WHATSAPP_NUMBER`, `STORE_CONTACT_*` | Fallback inicial; luego Admin → Perfil |
+
+Generar `JWT_SECRET` (PowerShell):
+
+```powershell
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+```
+
+El Dockerfile actual no requiere cambios: el cliente Prisma se compila en `dist/generated/prisma/` durante el build.
+
+### Vercel (×2)
+
+Cada catálogo es un proyecto Vercel independiente:
+
+| Proyecto | `VITE_CATALOG_MODE` |
+|----------|---------------------|
+| Catálogo detal | `detal` |
+| Catálogo mayorista | `mayor` |
+
+En **ambos**, configurar en build time:
+
+- `VITE_API_BASE_URL` → URL pública del backend Railway (ej. `https://tu-api.up.railway.app`)
+
+Root Directory: `frontend`. Install: `pnpm install`. Build: `pnpm build`.
+
+Tras desplegar frontends, actualizar `CORS_ORIGINS` en Railway con las URLs finales de Vercel.
+
+### Monitoreo
+
+Configurar [UptimeRobot](https://uptimerobot.com) (u similar) apuntando a `https://<tu-backend-railway>/health`, intervalo 5 min, alerta si status ≠ 200 o `db` ≠ `connected`.
+
+### Checklist post-deploy
+
+- [ ] `GET /health` OK
+- [ ] Login admin y cambio de contraseña
+- [ ] CRUD producto + upload imagen (Supabase Storage)
+- [ ] Pedido detal y mayor → URL WhatsApp correcta
+- [ ] Footer y contacto reflejan Admin → Perfil
+
+### Seed en producción vs desarrollo
+
+| Comando | Uso |
+|---------|-----|
+| `pnpm db:seed` | Desarrollo/demo: categorías, productos, pedidos y admin |
+| `pnpm db:seed:admin` | **Producción:** admin + categorías base + configuración de tienda (sin productos ni pedidos demo) |
+
+---
+
 ## Backend
 
 REST API en [`backend/`](backend/). Stack: Fastify, **Prisma 7** (`@prisma/adapter-pg`), PostgreSQL (Supabase), TypeScript, Zod. Package manager: **pnpm**.
@@ -62,7 +169,8 @@ cp .env.example .env
 # Completar Supabase + PostgreSQL (ver abajo)
 pnpm install
 pnpm db:migrate   # primera vez o tras cambios de schema
-pnpm db:seed      # categorías, productos demo, usuario admin
+pnpm db:seed      # categorías, productos demo, usuario admin (desarrollo)
+pnpm db:seed:admin  # admin + categorías + tienda (producción)
 pnpm dev
 # → http://localhost:4000/health
 ```
@@ -238,3 +346,9 @@ Referencia: [`docs/requisitos/documento_de_requisitos.md`](docs/requisitos/docum
 - Configuración de tienda en admin: WhatsApp, email, Instagram, dirección
 - Perfil admin (nombre y cambio de contraseña)
 - Desactivación de productos con pedidos asociados (en lugar de borrado forzado)
+
+---
+
+## License
+
+Licensed under the [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0).

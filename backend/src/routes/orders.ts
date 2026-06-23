@@ -39,7 +39,17 @@ const createOrderSchema = z.object({
 
 
 export async function orderRoutes(app: FastifyInstance) {
-  app.post("/api/orders", async (request, reply) => {
+  app.post(
+    "/api/orders",
+    {
+      config: {
+        rateLimit: {
+          max: 100,
+          timeWindow: "1 hour",
+        },
+      },
+    },
+    async (request, reply) => {
     const parsed = createOrderSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.flatten().fieldErrors });
@@ -75,5 +85,6 @@ export async function orderRoutes(app: FastifyInstance) {
       }
       throw error;
     }
-  });
+  },
+  );
 }

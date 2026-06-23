@@ -44,12 +44,23 @@ function AdminLogin() {
       setSession(result.token, result.user);
       navigate({ to: "/admin" });
     } catch (err) {
-      const message =
-        err instanceof ApiError && err.status === 401
-          ? "Las credenciales ingresadas son incorrectas. Verifica tu usuario y contraseña."
-          : err instanceof Error
-            ? err.message
-            : "No se pudo iniciar sesión. Intenta de nuevo.";
+      let message: string;
+      if (err instanceof ApiError && err.status === 401) {
+        message = "Las credenciales ingresadas son incorrectas. Verifica tu usuario y contraseña.";
+      } else if (err instanceof ApiError && err.status === 429) {
+        message = "Demasiados intentos de inicio de sesión. Espera unos minutos e inténtalo de nuevo.";
+        try {
+          const body = JSON.parse(err.message) as { retryAfter?: string };
+          if (body.retryAfter) {
+            message = `Demasiados intentos de inicio de sesión. Vuelve a intentarlo en ${body.retryAfter}.`;
+          }
+        } catch {
+          // usar mensaje por defecto
+        }
+      } else {
+        message =
+          err instanceof Error ? err.message : "No se pudo iniciar sesión. Intenta de nuevo.";
+      }
       setError(message);
     } finally {
       setSubmitting(false);

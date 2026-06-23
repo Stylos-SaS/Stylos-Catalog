@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import multipart from "@fastify/multipart";
+import rateLimit from "@fastify/rate-limit";
 import { config } from "./config.js";
 import prismaPlugin from "./plugins/prisma.js";
 import authPlugin from "./plugins/auth.js";
@@ -31,7 +32,28 @@ export async function buildApp() {
     limits: { fileSize: 5 * 1024 * 1024, files: 1 },
   });
 
+  await app.register(rateLimit, {
+    global: true,
+    max: 200,
+    timeWindow: "1 minute",
+    errorResponseBuilder: (_request, context) => ({
+      error: "Too many requests. Please try again later.",
+      retryAfter: context.after,
+    }),
+  });
+
   app.setErrorHandler((error, _request, reply) => {
+    if (
+      error !== null &&
+      typeof error === "object" &&
+      "error" in error &&
+      typeof (error as { error: unknown }).error === "string" &&
+      (error as { error: string }).error.toLowerCase().includes("too many requests")
+    ) {
+      const body = error as { error: string; retryAfter?: unknown };
+      return reply.status(429).send({ error: body.error, retryAfter: body.retryAfter });
+    }
+
     app.log.error(error);
     const statusCode =
       error && typeof error === "object" && "statusCode" in error && typeof error.statusCode === "number"

@@ -2,20 +2,17 @@ import "dotenv/config";
 import bcrypt from "bcrypt";
 import { createPrismaClient } from "../src/lib/db.js";
 import { seedStoreSettings } from "../src/services/store-settings.service.js";
-import { ensureDefaultCategory } from "../src/services/admin-category.service.js";
-import { emojiForCategoryName } from "../src/lib/category-emoji.js";
+import { SEED_CATEGORIES, seedCategories } from "./seed-categories.js";
 import { buildDetalleLines, computeLineSubtotal } from "../src/services/order-totals.js";
 import type { EstadoPedido, TipoPedido } from "../src/generated/prisma/client.js";
 
 const prisma = createPrismaClient();
 
-const categories = ["Hogar", "Accesorios", "Belleza", "Regalos", "Papelería", "Decoración"] as const;
-
 type SeedProduct = {
   codigo: string;
   nombre: string;
   descripcion: string;
-  categoryName: (typeof categories)[number];
+  categoryName: (typeof SEED_CATEGORIES)[number];
   precioDetal: number;
   precioMayor: number;
   fechaCreacion: string;
@@ -180,18 +177,6 @@ function productImagePath(codigo: string, index: number) {
   return `seed/${codigo.toLowerCase()}/${index}.jpg`;
 }
 
-async function seedCategories() {
-  await ensureDefaultCategory(prisma);
-
-  for (const nombre of categories) {
-    await prisma.categoria.upsert({
-      where: { nombre },
-      update: {},
-      create: { nombre, emoji: emojiForCategoryName(nombre) },
-    });
-  }
-}
-
 async function upsertProduct(product: SeedProduct) {
   const categoria = await prisma.categoria.findUniqueOrThrow({
     where: { nombre: product.categoryName },
@@ -328,7 +313,7 @@ async function seedOrders() {
 }
 
 async function main() {
-  await seedCategories();
+  await seedCategories(prisma);
   await seedProducts();
   await seedAdmin();
   await seedStoreSettings(prisma);

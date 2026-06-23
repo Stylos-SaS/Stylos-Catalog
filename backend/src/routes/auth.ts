@@ -30,7 +30,17 @@ function handleAuthError(error: unknown, reply: import("fastify").FastifyReply) 
 }
 
 export async function authRoutes(app: FastifyInstance) {
-  app.post("/api/auth/login", async (request, reply) => {
+  app.post(
+    "/api/auth/login",
+    {
+      config: {
+        rateLimit: {
+          max: 10,
+          timeWindow: "15 minutes",
+        },
+      },
+    },
+    async (request, reply) => {
     const parsed = loginSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.flatten().fieldErrors });
@@ -59,7 +69,8 @@ export async function authRoutes(app: FastifyInstance) {
       }
       throw error;
     }
-  });
+  },
+  );
 
   app.get(
     "/api/auth/me",
