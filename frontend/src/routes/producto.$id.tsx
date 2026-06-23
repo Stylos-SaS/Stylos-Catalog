@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ChevronRight, Minus, Plus, ShoppingBag, Zap, Truck, RotateCcw, Heart, Loader2 } from "lucide-react";
+import { ChevronRight, Minus, Plus, ShoppingBag, Zap, Truck, RotateCcw, Loader2 } from "lucide-react";
 import { StoreShell } from "@/components/storefront/StoreShell";
 import { ProductCard } from "@/components/storefront/ProductCard";
 import { ApiError } from "@/lib/api";
@@ -140,9 +140,6 @@ function ProductDetail() {
               >
                 <Zap className="h-4 w-4" /> Comprar ahora
               </Link>
-              <button className="grid h-12 w-12 place-items-center rounded-full border border-border bg-card hover:bg-secondary" aria-label="Favoritos">
-                <Heart className="h-4 w-4" />
-              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-4">
