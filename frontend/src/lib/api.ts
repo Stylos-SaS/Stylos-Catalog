@@ -91,6 +91,7 @@ export type StoreSettings = {
   whatsappNumber: string;
   contactEmail: string;
   contactInstagram: string;
+  contactLocation: string;
 };
 
 export function fetchPublicStoreSettings(): Promise<StoreSettings> {
@@ -102,6 +103,7 @@ function withStoreSettingsFallback(settings: Partial<StoreSettings>): StoreSetti
     whatsappNumber: settings.whatsappNumber || DEFAULT_STORE_SETTINGS.whatsappNumber,
     contactEmail: settings.contactEmail || DEFAULT_STORE_SETTINGS.contactEmail,
     contactInstagram: settings.contactInstagram || DEFAULT_STORE_SETTINGS.contactInstagram,
+    contactLocation: settings.contactLocation || DEFAULT_STORE_SETTINGS.contactLocation,
   };
 }
 

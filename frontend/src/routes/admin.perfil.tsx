@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { AlertCircle, Instagram, Loader2, LockKeyhole, Mail, MessageCircle, Save, User } from "lucide-react";
+import { AlertCircle, Instagram, Loader2, LockKeyhole, Mail, MapPin, MessageCircle, Save, User } from "lucide-react";
 import { adminInitials } from "@/lib/auth-storage";
 import {
   useAdminProfile,
@@ -47,6 +47,7 @@ function Profile() {
   const [whatsappInput, setWhatsappInput] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactInstagram, setContactInstagram] = useState("");
+  const [contactLocation, setContactLocation] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [contactError, setContactError] = useState<string | null>(null);
 
@@ -64,6 +65,7 @@ function Profile() {
       setWhatsappInput(whatsAppToDisplayInput(storeSettingsQuery.data.whatsappNumber));
       setContactEmail(storeSettingsQuery.data.contactEmail);
       setContactInstagram(storeSettingsQuery.data.contactInstagram);
+      setContactLocation(storeSettingsQuery.data.contactLocation);
     }
   }, [storeSettingsQuery.data]);
 
@@ -72,6 +74,7 @@ function Profile() {
   const whatsappValid = isValidWhatsAppPhone(whatsappInput);
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim());
   const instagramValid = normalizeInstagramInput(contactInstagram).length > 0;
+  const locationValid = contactLocation.trim().length > 0;
 
   const handleSaveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -111,6 +114,7 @@ function Profile() {
 
     const email = contactEmail.trim();
     const instagram = normalizeInstagramInput(contactInstagram);
+    const location = contactLocation.trim();
 
     if (!emailValid) {
       setContactError("Ingresa un email válido.");
@@ -120,8 +124,16 @@ function Profile() {
       setContactError("Ingresa un usuario de Instagram válido.");
       return;
     }
+    if (!location) {
+      setContactError("Ingresa una dirección válida.");
+      return;
+    }
 
-    await updateStoreContact.mutateAsync({ contactEmail: email, contactInstagram: instagram });
+    await updateStoreContact.mutateAsync({
+      contactEmail: email,
+      contactInstagram: instagram,
+      contactLocation: location,
+    });
   };
 
   if (loading) {
@@ -332,8 +344,8 @@ function Profile() {
             Contacto del catálogo
           </CardTitle>
           <CardDescription>
-            Email e Instagram que se muestran en el footer del catálogo. El teléfono y WhatsApp de
-            pedidos usan el número configurado arriba. La ubicación se muestra como Colombia.
+            Email, Instagram y dirección que se muestran en el footer del catálogo. El teléfono y
+            WhatsApp de pedidos usan el número configurado arriba.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -376,10 +388,30 @@ function Profile() {
               </p>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="contactLocation">Dirección</Label>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Input
+                  id="contactLocation"
+                  placeholder="Calle 10 # 5-20, Bogotá"
+                  value={contactLocation}
+                  onChange={(e) => setContactLocation(e.target.value)}
+                  maxLength={200}
+                  required
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Se muestra en la sección de contacto del footer.
+              </p>
+            </div>
+
             <div className="flex justify-end">
               <Button
                 type="submit"
-                disabled={updateStoreContact.isPending || !emailValid || !instagramValid}
+                disabled={
+                  updateStoreContact.isPending || !emailValid || !instagramValid || !locationValid
+                }
               >
                 {updateStoreContact.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

@@ -11,12 +11,14 @@ const updateStoreSettingsSchema = z
     whatsappNumber: z.string().trim().min(1).optional(),
     contactEmail: z.string().trim().email().optional(),
     contactInstagram: z.string().trim().min(1).max(80).optional(),
+    contactLocation: z.string().trim().min(1).max(200).optional(),
   })
   .refine(
     (data) =>
       data.whatsappNumber !== undefined ||
       data.contactEmail !== undefined ||
-      data.contactInstagram !== undefined,
+      data.contactInstagram !== undefined ||
+      data.contactLocation !== undefined,
     { message: "At least one field is required" },
   );
 

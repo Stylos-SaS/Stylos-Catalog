@@ -21,6 +21,7 @@ enum EstadoPedido {
 model Categoria {
   id        String     @id @default(uuid())
   nombre    String     @unique
+  emoji     String     @default("✨")
   productos Producto[]
 
   @@map("categoria")
@@ -98,6 +99,7 @@ model ConfiguracionTienda {
   whatsappNumero    String   @map("whatsapp_numero")
   contactoEmail     String   @map("contacto_email")
   contactoInstagram String   @map("contacto_instagram")
+  contactoUbicacion String   @map("contacto_ubicacion")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
   @@map("configuracion_tienda")

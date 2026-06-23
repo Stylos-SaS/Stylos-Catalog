@@ -1,6 +1,12 @@
 export type Category = {
   id: string;
   name: string;
+  emoji?: string;
+};
+
+export type AdminCategory = Category & {
+  productCount: number;
+  isDefault?: boolean;
 };
 
 export type Product = {

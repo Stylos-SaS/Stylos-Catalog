@@ -2,6 +2,8 @@ import "dotenv/config";
 import bcrypt from "bcrypt";
 import { createPrismaClient } from "../src/lib/db.js";
 import { seedStoreSettings } from "../src/services/store-settings.service.js";
+import { ensureDefaultCategory } from "../src/services/admin-category.service.js";
+import { emojiForCategoryName } from "../src/lib/category-emoji.js";
 import { buildDetalleLines, computeLineSubtotal } from "../src/services/order-totals.js";
 import type { EstadoPedido, TipoPedido } from "../src/generated/prisma/client.js";
 
@@ -179,11 +181,13 @@ function productImagePath(codigo: string, index: number) {
 }
 
 async function seedCategories() {
+  await ensureDefaultCategory(prisma);
+
   for (const nombre of categories) {
     await prisma.categoria.upsert({
       where: { nombre },
       update: {},
-      create: { nombre },
+      create: { nombre, emoji: emojiForCategoryName(nombre) },
     });
   }
 }

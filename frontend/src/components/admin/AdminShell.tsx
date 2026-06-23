@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import {
   LayoutDashboard,
   Package,
+  Tags,
   ClipboardList,
   User,
   LogOut,
@@ -29,6 +30,7 @@ import { AdminProfileMenu } from "@/components/admin/AdminProfileMenu";
 const nav = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/productos", label: "Productos", icon: Package },
+  { to: "/admin/categorias", label: "Categorías", icon: Tags },
   { to: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
   { to: "/admin/perfil", label: "Perfil", icon: User },
 ];

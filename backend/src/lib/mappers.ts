@@ -9,6 +9,7 @@ import type {
 } from "../generated/prisma/client.js";
 import { formatPedidoNumero } from "./pedido-number.js";
 import { formatColombiaDateKey } from "./timezone.js";
+import { DEFAULT_CATEGORY_NAME } from "./default-category.js";
 
 export type ProductDTO = {
   id: string;
@@ -27,6 +28,12 @@ export type ProductDTO = {
 export type CategoryDTO = {
   id: string;
   name: string;
+  emoji: string;
+};
+
+export type AdminCategoryDTO = CategoryDTO & {
+  productCount: number;
+  isDefault: boolean;
 };
 
 export type ProductImageAssetDTO = {
@@ -68,6 +75,19 @@ export function toCategoryDTO(category: Categoria): CategoryDTO {
   return {
     id: category.id,
     name: category.nombre,
+    emoji: category.emoji,
+  };
+}
+
+export function toAdminCategoryDTO(
+  category: Categoria & { _count: { productos: number } },
+): AdminCategoryDTO {
+  return {
+    id: category.id,
+    name: category.nombre,
+    emoji: category.emoji,
+    productCount: category._count.productos,
+    isDefault: category.nombre === DEFAULT_CATEGORY_NAME,
   };
 }
 

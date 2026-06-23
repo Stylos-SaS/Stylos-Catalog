@@ -18,12 +18,14 @@ export type StoreSettings = {
   whatsappNumber: string;
   contactEmail: string;
   contactInstagram: string;
+  contactLocation: string;
 };
 
 export type UpdateStoreSettingsInput = {
   whatsappNumber?: string;
   contactEmail?: string;
   contactInstagram?: string;
+  contactLocation?: string;
 };
 
 function normalizeInstagramHandle(raw: string): string {
@@ -34,11 +36,13 @@ function toStoreSettings(row: {
   whatsappNumero: string;
   contactoEmail: string;
   contactoInstagram: string;
+  contactoUbicacion: string;
 }): StoreSettings {
   return {
     whatsappNumber: row.whatsappNumero,
     contactEmail: row.contactoEmail,
     contactInstagram: row.contactoInstagram,
+    contactLocation: row.contactoUbicacion,
   };
 }
 
@@ -47,6 +51,7 @@ function envFallbackSettings(): StoreSettings {
     whatsappNumber: config.WHATSAPP_NUMBER,
     contactEmail: config.STORE_CONTACT_EMAIL,
     contactInstagram: config.STORE_CONTACT_INSTAGRAM,
+    contactLocation: config.STORE_CONTACT_LOCATION,
   };
 }
 
@@ -79,6 +84,7 @@ export async function updateStoreSettings(
     whatsappNumero?: string;
     contactoEmail?: string;
     contactoInstagram?: string;
+    contactoUbicacion?: string;
   } = {};
 
   if (input.whatsappNumber !== undefined) {
@@ -108,6 +114,14 @@ export async function updateStoreSettings(
     updateData.contactoInstagram = handle;
   }
 
+  if (input.contactLocation !== undefined) {
+    const location = input.contactLocation.trim();
+    if (!location || location.length > 200) {
+      throw new StoreSettingsError("Invalid contact location.", 400);
+    }
+    updateData.contactoUbicacion = location;
+  }
+
   const fallback = envFallbackSettings();
   const normalizedWhatsapp =
     updateData.whatsappNumero ??
@@ -121,6 +135,7 @@ export async function updateStoreSettings(
       whatsappNumero: normalizedWhatsapp,
       contactoEmail: updateData.contactoEmail ?? fallback.contactEmail,
       contactoInstagram: updateData.contactoInstagram ?? fallback.contactInstagram,
+      contactoUbicacion: updateData.contactoUbicacion ?? fallback.contactLocation,
     },
     update: updateData,
   });
@@ -145,6 +160,7 @@ export async function seedStoreSettings(prisma: PrismaClient) {
       whatsappNumero,
       contactoEmail: fallback.contactEmail,
       contactoInstagram: fallback.contactInstagram,
+      contactoUbicacion: fallback.contactLocation,
     },
     update: {},
   });

@@ -15,6 +15,7 @@ const envSchema = z.object({
   WHATSAPP_NUMBER: z.string().min(1).default("573001234567"),
   STORE_CONTACT_EMAIL: z.string().email().default("hola@stylos.co"),
   STORE_CONTACT_INSTAGRAM: z.string().min(1).default("stylos.variedades"),
+  STORE_CONTACT_LOCATION: z.string().min(1).default("Colombia"),
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
   SUPABASE_STORAGE_BUCKET: z.string().min(1).default("product-images"),
 });

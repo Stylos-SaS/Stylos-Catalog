@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { categoriesQueryOptions } from "./queries";
 import { adminDashboardKeys } from "./admin-dashboard-queries";
+import { useAdminCategoriesAsOptions } from "./admin-category-queries";
 import {
   createAdminProduct,
   deleteAdminProduct,
@@ -27,7 +27,7 @@ export function useAdminProducts(params: { q?: string; category?: string } = {})
 }
 
 export function useAdminCategories() {
-  return useQuery(categoriesQueryOptions());
+  return useAdminCategoriesAsOptions();
 }
 
 export function useSaveAdminProduct() {

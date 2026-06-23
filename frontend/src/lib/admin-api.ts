@@ -3,6 +3,7 @@ import type {
   AdminOrder,
   AdminOrderListResponse,
   AdminProduct,
+  AdminCategory,
   AdminDashboard,
   Category,
   OrderStatus,
@@ -159,6 +160,7 @@ export type UpdateStoreSettingsPayload = {
   whatsappNumber?: string;
   contactEmail?: string;
   contactInstagram?: string;
+  contactLocation?: string;
 };
 
 export function updateStoreSettings(payload: UpdateStoreSettingsPayload): Promise<StoreSettings> {
@@ -167,6 +169,36 @@ export function updateStoreSettings(payload: UpdateStoreSettingsPayload): Promis
     { method: "PATCH", body: JSON.stringify(payload) },
     token(),
   );
+}
+
+export function fetchAdminCategories(): Promise<AdminCategory[]> {
+  return apiFetchWithAuth("/api/admin/categories", undefined, token());
+}
+
+export function createAdminCategory(payload: {
+  name: string;
+  emoji?: string;
+}): Promise<AdminCategory> {
+  return apiFetchWithAuth(
+    "/api/admin/categories",
+    { method: "POST", body: JSON.stringify(payload) },
+    token(),
+  );
+}
+
+export function updateAdminCategory(
+  id: string,
+  payload: { name?: string; emoji?: string },
+): Promise<AdminCategory> {
+  return apiFetchWithAuth(
+    `/api/admin/categories/${id}`,
+    { method: "PUT", body: JSON.stringify(payload) },
+    token(),
+  );
+}
+
+export async function deleteAdminCategory(id: string): Promise<void> {
+  await apiFetchWithAuth(`/api/admin/categories/${id}`, { method: "DELETE" }, token());
 }
 
 export type { Category, Product };

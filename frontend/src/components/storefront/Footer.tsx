@@ -10,7 +10,7 @@ function whatsAppToDisplayPhone(number: string): string {
 }
 
 export function Footer() {
-  const { whatsappNumber, contactEmail, contactInstagram } = useStoreSettings();
+  const { whatsappNumber, contactEmail, contactInstagram, contactLocation } = useStoreSettings();
   const phoneDisplay = `+57 ${whatsAppToDisplayPhone(whatsappNumber)}`;
   const instagramHandle = contactInstagram.replace(/^@+/, "");
 
@@ -57,7 +57,7 @@ export function Footer() {
             </li>
             <li className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-primary shrink-0" />
-              Colombia
+              {contactLocation}
             </li>
             <li className="flex items-center gap-2">
               <Instagram className="h-4 w-4 text-primary shrink-0" />

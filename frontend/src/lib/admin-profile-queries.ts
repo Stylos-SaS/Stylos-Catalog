@@ -110,7 +110,11 @@ export function useUpdateStoreContact() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: { contactEmail: string; contactInstagram: string }) =>
+    mutationFn: (payload: {
+      contactEmail: string;
+      contactInstagram: string;
+      contactLocation: string;
+    }) =>
       updateStoreSettings(payload),
     onSuccess: (data) => {
       syncStoreSettingsCache(queryClient, data);

@@ -9,6 +9,7 @@ import {
   type UpsertAdminProductPayload,
 } from "@/lib/admin-api";
 import { productPrimaryImage } from "@/lib/product-image";
+import { resolveDefaultCategoryId } from "@/lib/default-category";
 import { cn } from "@/lib/utils";
 
 type FormImage =
@@ -37,7 +38,9 @@ export function ProductFormModal({
   const [codigo, setCodigo] = useState(product?.codigo ?? "");
   const [name, setName] = useState(product?.name ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
-  const [categoryId, setCategoryId] = useState(product?.categoryId ?? categories[0]?.id ?? "");
+  const [categoryId, setCategoryId] = useState(
+    product?.categoryId ?? resolveDefaultCategoryId(categories),
+  );
   const [priceRetail, setPriceRetail] = useState(String(product?.priceRetail ?? ""));
   const [priceWholesale, setPriceWholesale] = useState(String(product?.priceWholesale ?? ""));
   const [active, setActive] = useState(product?.active ?? true);

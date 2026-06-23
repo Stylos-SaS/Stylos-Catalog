@@ -44,7 +44,7 @@ function Home() {
         <div className="mx-auto grid max-w-7xl items-center gap-8 px-6 py-12 md:grid-cols-2 md:py-20">
           <div className="space-y-6">
             <span className="inline-flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-xs font-medium text-primary shadow-soft">
-              <Sparkles className="h-3.5 w-3.5" /> Nueva colección · Junio
+              <Sparkles className="h-3.5 w-3.5" /> Selección especial · Con amor
             </span>
             <h1 className="font-display text-4xl font-bold leading-[1.05] sm:text-5xl md:text-6xl">
               Detalles que <span className="text-primary">enamoran</span>,<br />
@@ -66,7 +66,7 @@ function Home() {
             <div className="flex flex-wrap gap-x-6 gap-y-2 pt-2 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5"><Truck className="h-4 w-4 text-primary" /> Envíos a todo Colombia</span>
               <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-primary" /> Compra segura</span>
-              <span className="flex items-center gap-1.5"><Heart className="h-4 w-4 text-primary fill-current" /> +5 mil clientas felices</span>
+              <span className="flex items-center gap-1.5"><Heart className="h-4 w-4 text-primary fill-current" /> +5 mil clientes felices</span>
             </div>
           </div>
           <div className="relative">
@@ -79,8 +79,8 @@ function Home() {
                 <Heart className="h-5 w-5 fill-current" />
               </div>
               <div>
-                <div className="text-xs text-muted-foreground">Hoy</div>
-                <div className="text-sm font-semibold">12 pedidos enviados</div>
+                <div className="text-xs text-muted-foreground">Envíos</div>
+                <div className="text-sm font-semibold">Coordinados con cariño</div>
               </div>
             </div>
           </div>
@@ -120,7 +120,7 @@ function Home() {
       {/* Productos destacados */}
       <section className="mx-auto max-w-7xl px-6 pb-20">
         <div className="flex items-end justify-between gap-4">
-          <SectionHeading title="Lo más amado" subtitle="Los favoritos de nuestras clientas" inline />
+          <SectionHeading title="Lo más amado" subtitle="Los favoritos de nuestros clientes" inline />
           <Link to="/catalogo" className="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
             Ver todo <ArrowRight className="h-4 w-4" />
           </Link>
