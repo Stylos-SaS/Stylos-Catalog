@@ -1,4 +1,5 @@
 # Full stack local testing: backend + storefronts (detal + mayor)
+# Requisitos: backend/.env y frontend/.env (copiar desde .env.example)
 # Usage: docker compose up --build
 services:
   backend:
@@ -8,26 +9,32 @@ services:
       - "4000:4000"
     env_file:
       - ./backend/.env
-    environment:
-      NODE_ENV: production
-      CORS_ORIGINS: http://localhost:3000,http://localhost:3001,http://localhost:3002
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   frontend-detal:
     build:
       context: ./frontend
       args:
         VITE_CATALOG_MODE: detal
-        VITE_API_BASE_URL: http://localhost:4000
-        VITE_WHATSAPP_NUMBER: ${VITE_WHATSAPP_NUMBER:-573001234567}
     ports:
       - "3001:3000"
-    environment:
-      NODE_ENV: production
-      HOST: 0.0.0.0
-      PORT: 3000
+    env_file:
+      - ./frontend/.env
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend-mayor:
@@ -35,14 +42,11 @@ services:
       context: ./frontend
       args:
         VITE_CATALOG_MODE: mayor
-        VITE_API_BASE_URL: http://localhost:4000
-        VITE_WHATSAPP_NUMBER: ${VITE_WHATSAPP_NUMBER:-573001234567}
     ports:
       - "3002:3000"
-    environment:
-      NODE_ENV: production
-      HOST: 0.0.0.0
-      PORT: 3000
+    env_file:
+      - ./frontend/.env
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped

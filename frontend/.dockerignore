@@ -6,7 +6,6 @@ dist
 .vinxi
 .wrangler
 .git
-.env
 .env.local
 *.log
 .DS_Store

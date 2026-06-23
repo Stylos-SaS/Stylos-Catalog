@@ -6,7 +6,17 @@ Especificación formal: [`docs/requisitos/documento_de_requisitos.md`](docs/requ
 
 ## Quick start (Docker full stack)
 
-Requisito previo: configurar [`backend/.env`](backend/.env) (copiar desde `backend/.env.example`).
+Requisitos previos — copiar y configurar ambos archivos:
+
+- [`backend/.env`](backend/.env) ← `backend/.env.example`
+- [`frontend/.env`](frontend/.env) ← `frontend/.env.example`
+
+Antes de `docker compose up`, en **ambos** `.env` usar `NODE_ENV=production` (en local dev suele ser `development`).
+
+Docker Compose lee:
+
+- **Backend:** `env_file: ./backend/.env` (runtime).
+- **Frontends:** `env_file: ./frontend/.env` (runtime). En el **build**, el mismo `frontend/.env` se copia al contexto de Docker y Vite lo usa; solo `VITE_CATALOG_MODE` se sobrescribe por servicio (`detal` / `mayor`).
 
 ```bash
 # Desde la raíz del repo — backend + catálogo detal + catálogo mayor
@@ -36,7 +46,7 @@ Opcional — datos de demo:
 docker run --rm --env-file backend/.env stylos-catalog-backend-builder pnpm db:seed
 ```
 
-Solo frontends (sin backend en Docker): ver [`frontend/docker-compose.yml`](frontend/docker-compose.yml).
+Para levantar solo algunos servicios: `docker compose up --build backend frontend-detal`.
 
 ---
 
@@ -162,8 +172,13 @@ Usar `VITE_CATALOG_MODE=detal` o `mayor` en `.env` según el catálogo a probar.
 | `VITE_STORE_CONTACT_EMAIL` | Fallback email del footer |
 | `VITE_STORE_CONTACT_INSTAGRAM` | Fallback Instagram del footer |
 | `VITE_STORE_CONTACT_LOCATION` | Fallback dirección del footer |
+| `NODE_ENV` | `development` en local; `production` en Docker |
+| `HOST` | Host del servidor SSR (default `0.0.0.0` en Docker) |
+| `PORT` | Puerto del servidor SSR (default `3000`) |
 
 En producción, WhatsApp y contacto del footer se configuran en **Admin → Perfil**. Las `VITE_*` de contacto solo aplican como fallback cuando `GET /api/settings/store` no está disponible.
+
+En Docker, las variables `VITE_*` se leen de `frontend/.env` durante el build (archivo incluido en el contexto de Docker). No hace falta un `.env` en la raíz del repo.
 
 ### Rutas storefront
 
@@ -194,18 +209,6 @@ cd frontend
 VITE_CATALOG_MODE=detal pnpm build
 pnpm start
 ```
-
-### Docker (solo frontend)
-
-```bash
-cd frontend
-docker compose up --build
-```
-
-| Service | URL | Mode |
-|---------|-----|------|
-| `frontend-detal` | http://localhost:3001 | detal |
-| `frontend-mayor` | http://localhost:3002 | mayor |
 
 ---
 
