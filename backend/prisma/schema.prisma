@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TipoPedido {
+  detal
+  mayor
+}
+
+enum EstadoPedido {
+  pendiente
+  completado
+  cancelado
+}
+
+model Categoria {
+  id        String     @id @default(uuid())
+  nombre    String     @unique
+  emoji     String     @default("✨")
+  productos Producto[]
+
+  @@map("categoria")
+}
+
+model Producto {
+  id            String           @id @default(uuid())
+  codigo        String
+  nombre        String
+  descripcion   String
+  precioDetal   Int              @map("precio_detal")
+  precioMayor   Int              @map("precio_mayor")
+  categoriaId   String           @map("categoria_id")
+  activo        Boolean          @default(true)
+  fechaCreacion DateTime         @default(now()) @map("fecha_creacion")
+  categoria     Categoria        @relation(fields: [categoriaId], references: [id])
+  imagenes      ProductoImagen[]
+  detalles      DetallePedido[]
+
+  @@map("producto")
+}
+
+model ProductoImagen {
+  id          String   @id @default(uuid())
+  productoId  String   @map("producto_id")
+  url         String
+  path        String
+  esPrincipal Boolean  @default(false) @map("es_principal")
+  producto    Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+
+  @@map("producto_imagen")
+}
+
+model Pedido {
+  id                 String          @id @default(uuid())
+  numeroPedido       Int             @unique @default(autoincrement()) @map("numero_pedido")
+  fechaCreacion      DateTime        @default(now()) @map("fecha_creacion")
+  tipoPedido         TipoPedido      @map("tipo_pedido")
+  estado             EstadoPedido    @default(pendiente)
+  cantidadProductos  Int             @map("cantidad_productos")
+  total              Int
+  fechaActualizacion DateTime        @updatedAt @map("fecha_actualizacion")
+  contactoCliente    String?         @map("contacto_cliente")
+  detalles           DetallePedido[]
+
+  @@map("pedido")
+}
+
+model DetallePedido {
+  pedidoId       String   @map("pedido_id")
+  consec         Int
+  productoId     String   @map("producto_id")
+  cantidad       Int
+  precioUnitario Int      @map("precio_unitario")
+  subtotal       Int
+  disponible     Boolean  @default(true)
+  pedido         Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  producto       Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+
+  @@id([pedidoId, consec])
+  @@map("detalle_pedido")
+}
+
+model UsuarioAdmin {
+  id           String @id @default(uuid())
+  username     String @unique
+  nombre       String
+  passwordHash String @map("password_hash")
+
+  @@map("usuario_admin")
+}
+
+model ConfiguracionTienda {
+  id                String   @id @default("default")
+  whatsappNumero    String   @map("whatsapp_numero")
+  contactoEmail     String   @map("contacto_email")
+  contactoInstagram String   @map("contacto_instagram")
+  contactoUbicacion String   @map("contacto_ubicacion")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("configuracion_tienda")
+}
