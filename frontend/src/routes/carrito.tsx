@@ -7,7 +7,7 @@ import { useCart, useCartTotals } from "@/lib/cart";
 import { API_BASE_URL, CATALOG_MODE, CATALOG_SHORT_LABEL, CART_STORAGE_KEY, IS_MAYOR_CATALOG } from "@/lib/config";
 import { formatCOP } from "@/lib/format";
 import { createOrder } from "@/lib/api";
-import { WHATSAPP_NUMBER } from "@/lib/config";
+import { useStoreWhatsAppNumber } from "@/lib/queries";
 import { formatPhoneDisplay, isValidWhatsAppPhone, normalizeWhatsAppPhone } from "@/lib/phone";
 
 const LAST_ORDER_KEY = "stylos-last-order";
@@ -25,6 +25,7 @@ function Cart() {
   const clear = useCart((s) => s.clear);
   const { subtotal, count } = useCartTotals();
   const navigate = useNavigate();
+  const whatsappNumber = useStoreWhatsAppNumber();
   const [submitting, setSubmitting] = useState(false);
   const [phone, setPhone] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -86,7 +87,7 @@ function Cart() {
         .join("%0A");
       const orderLabel = IS_MAYOR_CATALOG ? ` (${CATALOG_SHORT_LABEL})` : "";
       const msg = `¡Hola Stylos! Quiero finalizar este pedido${orderLabel}:%0A%0AMi WhatsApp: ${normalizedPhone}%0A%0A${lines}%0A%0ATotal: ${formatCOP(subtotal)}`;
-      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, "_blank");
+      window.open(`https://wa.me/${whatsappNumber}?text=${msg}`, "_blank");
       navigate({ to: "/confirmacion" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo crear el pedido");

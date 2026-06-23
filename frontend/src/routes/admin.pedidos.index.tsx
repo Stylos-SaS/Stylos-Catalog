@@ -1,13 +1,23 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Eye, Loader2, AlertCircle, PackageOpen } from "lucide-react";
 import { formatCOP, formatDate } from "@/lib/format";
 import { StatusBadge, TypeBadge } from "./admin.index";
 import { cn } from "@/lib/utils";
 import { useAdminOrders } from "@/lib/admin-order-queries";
+import { SortableTableHead } from "@/components/admin/SortableTableHead";
+import type { AdminOrderListItem } from "@/lib/types";
+import {
+  parseOrderNumber,
+  useSortedItems,
+  type SortAccessors,
+} from "@/lib/use-table-sort";
 
 export const Route = createFileRoute("/admin/pedidos/")({
   head: () => ({ meta: [{ title: "Pedidos — Stylos Admin" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: search.tab === "pendiente" ? ("pendiente" as const) : undefined,
+  }),
   component: OrdersAdmin,
 });
 
@@ -18,13 +28,41 @@ const tabs = [
   { label: "Cancelados", status: "cancelado" as const },
 ];
 
+const orderSortAccessors: SortAccessors<AdminOrderListItem> = {
+  number: { getValue: (o) => parseOrderNumber(o.number), type: "number" },
+  customer: { getValue: (o) => o.customer, type: "string" },
+  date: { getValue: (o) => o.date, type: "date" },
+  type: { getValue: (o) => o.type, type: "enum", enumOrder: ["detal", "mayor"] },
+  status: {
+    getValue: (o) => o.status,
+    type: "enum",
+    enumOrder: ["pendiente", "completado", "cancelado"],
+  },
+  itemCount: { getValue: (o) => o.itemCount, type: "number" },
+  total: { getValue: (o) => o.total, type: "number" },
+};
+
 function OrdersAdmin() {
-  const [tabIndex, setTabIndex] = useState(0);
+  const { tab } = Route.useSearch();
+  const pendingTabIndex = tabs.findIndex((t) => t.status === "pendiente");
+  const [tabIndex, setTabIndex] = useState(tab === "pendiente" ? pendingTabIndex : 0);
+
+  useEffect(() => {
+    if (tab === "pendiente") {
+      setTabIndex(pendingTabIndex);
+    }
+  }, [tab, pendingTabIndex]);
   const [q, setQ] = useState("");
 
   const status = tabs[tabIndex]?.status;
   const { data, isLoading, error } = useAdminOrders({ q, status });
   const orders = data?.items ?? [];
+  const { sort, toggleSort, sortedItems: sortedOrders } = useSortedItems(
+    orders,
+    orderSortAccessors,
+    "date",
+    "desc",
+  );
 
   return (
     <div className="space-y-6">
@@ -79,18 +117,65 @@ function OrdersAdmin() {
             <table className="w-full text-sm">
               <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3">Nº Pedido</th>
-                  <th className="px-5 py-3 hidden md:table-cell">Cliente</th>
-                  <th className="px-5 py-3 hidden sm:table-cell">Fecha</th>
-                  <th className="px-5 py-3">Tipo</th>
-                  <th className="px-5 py-3">Estado</th>
-                  <th className="px-5 py-3 hidden sm:table-cell">Productos</th>
-                  <th className="px-5 py-3 text-right">Total</th>
+                  <SortableTableHead
+                    label="Nº Pedido"
+                    sortKey="number"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Cliente"
+                    sortKey="customer"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                    className="hidden md:table-cell"
+                  />
+                  <SortableTableHead
+                    label="Fecha"
+                    sortKey="date"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                    className="hidden sm:table-cell"
+                  />
+                  <SortableTableHead
+                    label="Tipo"
+                    sortKey="type"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Estado"
+                    sortKey="status"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Productos"
+                    sortKey="itemCount"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                    className="hidden sm:table-cell"
+                  />
+                  <SortableTableHead
+                    label="Total"
+                    sortKey="total"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                    align="right"
+                    className="text-right"
+                  />
                   <th className="px-5 py-3" />
                 </tr>
               </thead>
               <tbody>
-                {orders.map((o) => (
+                {sortedOrders.map((o) => (
                   <tr key={o.id} className="border-t border-border hover:bg-secondary/20">
                     <td className="px-5 py-3 font-semibold">{o.number}</td>
                     <td className="px-5 py-3 hidden md:table-cell">{o.customer}</td>

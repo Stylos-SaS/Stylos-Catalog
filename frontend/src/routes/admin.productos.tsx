@@ -14,13 +14,28 @@ import {
 import { fetchAdminProduct } from "@/lib/admin-api";
 import { ApiError } from "@/lib/api";
 import { ProductFormModal, ProductViewModal } from "@/components/admin/ProductFormModal";
+import { SortableTableHead } from "@/components/admin/SortableTableHead";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useSortedItems, type SortAccessors } from "@/lib/use-table-sort";
 
 export const Route = createFileRoute("/admin/productos")({
   head: () => ({ meta: [{ title: "Productos — Stylos Admin" }] }),
   component: ProductsAdmin,
 });
+
+const productSortAccessors: SortAccessors<Product> = {
+  name: {
+    getValue: (p) => p.name,
+    type: "string",
+    tieBreaker: { getValue: (p) => p.codigo, type: "string" },
+  },
+  category: { getValue: (p) => p.category, type: "string" },
+  active: { getValue: (p) => p.active, type: "boolean" },
+  priceRetail: { getValue: (p) => p.priceRetail, type: "number" },
+  priceWholesale: { getValue: (p) => p.priceWholesale, type: "number" },
+  createdAt: { getValue: (p) => p.createdAt, type: "date" },
+};
 
 function ProductsAdmin() {
   const [q, setQ] = useState("");
@@ -37,6 +52,12 @@ function ProductsAdmin() {
   const toggleActive = useToggleAdminProductActive();
 
   const products = data?.items ?? [];
+  const { sort, toggleSort, sortedItems: sortedProducts } = useSortedItems(
+    products,
+    productSortAccessors,
+    "createdAt",
+    "desc",
+  );
 
   const openCreate = () => {
     setEditingProduct(undefined);
@@ -143,17 +164,58 @@ function ProductsAdmin() {
             <table className="w-full text-sm">
               <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3">Producto</th>
-                  <th className="px-5 py-3">Categoría</th>
-                  <th className="px-5 py-3">Estado</th>
-                  <th className="px-5 py-3 text-right">Detal</th>
-                  <th className="px-5 py-3 text-right">Mayor</th>
-                  <th className="px-5 py-3 hidden md:table-cell">Creado</th>
+                  <SortableTableHead
+                    label="Producto"
+                    sortKey="name"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Categoría"
+                    sortKey="category"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Estado"
+                    sortKey="active"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                  />
+                  <SortableTableHead
+                    label="Detal"
+                    sortKey="priceRetail"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                    align="right"
+                    className="text-right"
+                  />
+                  <SortableTableHead
+                    label="Mayor"
+                    sortKey="priceWholesale"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                    align="right"
+                    className="text-right"
+                  />
+                  <SortableTableHead
+                    label="Creado"
+                    sortKey="createdAt"
+                    activeKey={sort.key}
+                    direction={sort.direction}
+                    onSort={toggleSort}
+                    className="hidden md:table-cell"
+                  />
                   <th className="px-5 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {products.map((p) => (
+                {sortedProducts.map((p) => (
                   <tr
                     key={p.id}
                     className={cn(

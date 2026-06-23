@@ -11,15 +11,18 @@ import { adminDashboardKeys } from "./admin-dashboard-queries";
 
 export const adminOrderKeys = {
   all: ["admin", "orders"] as const,
-  list: (params: { q?: string; status?: OrderStatus }) =>
+  list: (params: { q?: string; status?: OrderStatus; limit?: number }) =>
     [...adminOrderKeys.all, "list", params] as const,
   detail: (id: string) => [...adminOrderKeys.all, "detail", id] as const,
 };
 
-export function adminOrdersQueryOptions(params: { q?: string; status?: OrderStatus } = {}) {
+export function adminOrdersQueryOptions(
+  params: { q?: string; status?: OrderStatus; limit?: number } = {},
+) {
   return {
     queryKey: adminOrderKeys.list(params),
-    queryFn: () => fetchAdminOrders({ ...params, limit: 100, page: 1 }),
+    queryFn: () =>
+      fetchAdminOrders({ ...params, limit: params.limit ?? 100, page: 1 }),
   };
 }
 
@@ -32,6 +35,10 @@ export function adminOrderQueryOptions(id: string) {
 
 export function useAdminOrders(params: { q?: string; status?: OrderStatus } = {}) {
   return useQuery(adminOrdersQueryOptions(params));
+}
+
+export function useAdminPendingOrdersPreview() {
+  return useQuery(adminOrdersQueryOptions({ status: "pendiente", limit: 5 }));
 }
 
 export function useAdminOrder(id: string) {

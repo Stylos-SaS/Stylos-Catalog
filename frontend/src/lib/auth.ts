@@ -6,6 +6,7 @@ type AuthState = {
   token: string | null;
   user: AdminUser | null;
   setSession: (token: string, user: AdminUser) => void;
+  setUser: (user: AdminUser) => void;
   clearSession: () => void;
 };
 
@@ -15,6 +16,7 @@ export const useAuth = create<AuthState>()(
       token: null,
       user: null,
       setSession: (token, user) => set({ token, user }),
+      setUser: (user) => set({ user }),
       clearSession: () => set({ token: null, user: null }),
     }),
     { name: AUTH_STORAGE_KEY },

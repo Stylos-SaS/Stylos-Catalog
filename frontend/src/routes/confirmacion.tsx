@@ -4,7 +4,7 @@ import { Check, MessageCircle, Home } from "lucide-react";
 import { StoreShell } from "@/components/storefront/StoreShell";
 import { useCart, useCartTotals } from "@/lib/cart";
 import { formatCOP } from "@/lib/format";
-import { WHATSAPP_NUMBER } from "@/lib/config";
+import { useStoreWhatsAppNumber } from "@/lib/queries";
 import { LAST_ORDER_KEY } from "./carrito";
 
 type StoredOrder = {
@@ -37,6 +37,7 @@ function Confirm() {
   const items = useCart((s) => s.items);
   const { subtotal, count } = useCartTotals();
   const clear = useCart((s) => s.clear);
+  const whatsappNumber = useStoreWhatsAppNumber();
 
   const storedOrder = useMemo(() => {
     if (!orderId) return null;
@@ -62,7 +63,7 @@ function Confirm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola Stylos, mi pedido ${displayNumber}`)}`;
+  const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola Stylos, mi pedido ${displayNumber}`)}`;
 
   return (
     <StoreShell>

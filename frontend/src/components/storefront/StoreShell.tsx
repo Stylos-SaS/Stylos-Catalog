@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { Toaster } from "sonner";
+import { useStoreWhatsAppNumber } from "@/lib/queries";
 
 export function StoreShell({ children }: { children: ReactNode }) {
   return (
@@ -17,9 +18,11 @@ export function StoreShell({ children }: { children: ReactNode }) {
 }
 
 function FloatingWhatsApp() {
+  const whatsappNumber = useStoreWhatsAppNumber();
+
   return (
     <a
-      href="https://wa.me/573014039265"
+      href={`https://wa.me/${whatsappNumber}`}
       target="_blank"
       rel="noreferrer"
       className="fixed bottom-6 right-6 z-50 grid h-14 w-14 place-items-center rounded-full bg-[oklch(0.7_0.15_155)] text-white shadow-pop transition hover:scale-105"

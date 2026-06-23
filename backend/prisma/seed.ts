@@ -1,6 +1,7 @@
 import "dotenv/config";
 import bcrypt from "bcrypt";
 import { createPrismaClient } from "../src/lib/db.js";
+import { seedStoreSettings } from "../src/services/store-settings.service.js";
 import { buildDetalleLines, computeLineSubtotal } from "../src/services/order-totals.js";
 import type { EstadoPedido, TipoPedido } from "../src/generated/prisma/client.js";
 
@@ -326,6 +327,7 @@ async function main() {
   await seedCategories();
   await seedProducts();
   await seedAdmin();
+  await seedStoreSettings(prisma);
   await seedOrders();
 
   const [categoryCount, productCount, imageCount, orderCount, adminCount] = await Promise.all([

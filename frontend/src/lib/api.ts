@@ -1,4 +1,4 @@
-import { API_BASE_URL, CATALOG_MODE } from "./config";
+import { API_BASE_URL, CATALOG_MODE, DEFAULT_STORE_SETTINGS } from "./config";
 import type { Category, Product, ProductListResponse, ProductsQueryParams } from "./types";
 import type { AdminUser } from "./auth-storage";
 import { ApiError, apiFetch, apiFetchWithAuth } from "./api-core";
@@ -85,4 +85,55 @@ export function loginAdmin(payload: LoginPayload): Promise<LoginResponse> {
 
 export function fetchAdminProfile(): Promise<{ user: AdminUser }> {
   return apiFetchWithAuth("/api/auth/me", undefined, authToken());
+}
+
+export type StoreSettings = {
+  whatsappNumber: string;
+  contactEmail: string;
+  contactInstagram: string;
+};
+
+export function fetchPublicStoreSettings(): Promise<StoreSettings> {
+  return apiFetch("/api/settings/store");
+}
+
+function withStoreSettingsFallback(settings: Partial<StoreSettings>): StoreSettings {
+  return {
+    whatsappNumber: settings.whatsappNumber || DEFAULT_STORE_SETTINGS.whatsappNumber,
+    contactEmail: settings.contactEmail || DEFAULT_STORE_SETTINGS.contactEmail,
+    contactInstagram: settings.contactInstagram || DEFAULT_STORE_SETTINGS.contactInstagram,
+  };
+}
+
+/** Reads store settings from API; falls back to VITE_* env when API is unavailable. */
+export async function fetchPublicStoreSettingsWithFallback(): Promise<StoreSettings> {
+  if (!API_BASE_URL) {
+    return { ...DEFAULT_STORE_SETTINGS };
+  }
+
+  try {
+    const settings = await fetchPublicStoreSettings();
+    return withStoreSettingsFallback(settings);
+  } catch {
+    return { ...DEFAULT_STORE_SETTINGS };
+  }
+}
+
+export function updateAdminProfile(payload: { nombre: string }): Promise<{ user: AdminUser }> {
+  return apiFetchWithAuth(
+    "/api/auth/profile",
+    { method: "PATCH", body: JSON.stringify(payload) },
+    authToken(),
+  );
+}
+
+export function changeAdminPassword(payload: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<{ ok: true }> {
+  return apiFetchWithAuth(
+    "/api/auth/password",
+    { method: "PATCH", body: JSON.stringify(payload) },
+    authToken(),
+  );
 }

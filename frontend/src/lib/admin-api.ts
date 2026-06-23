@@ -10,6 +10,7 @@ import type {
   ProductListResponse,
 } from "./types";
 import { ApiError, apiFetchWithAuth } from "./api-core";
+import type { StoreSettings } from "./api";
 
 export type ProductImagePayload = {
   url: string;
@@ -148,6 +149,24 @@ export function updateAdminOrderStatus(
 
 export function fetchAdminDashboard(): Promise<AdminDashboard> {
   return apiFetchWithAuth("/api/admin/dashboard", undefined, token());
+}
+
+export function fetchStoreSettings(): Promise<StoreSettings> {
+  return apiFetchWithAuth("/api/admin/store-settings", undefined, token());
+}
+
+export type UpdateStoreSettingsPayload = {
+  whatsappNumber?: string;
+  contactEmail?: string;
+  contactInstagram?: string;
+};
+
+export function updateStoreSettings(payload: UpdateStoreSettingsPayload): Promise<StoreSettings> {
+  return apiFetchWithAuth(
+    "/api/admin/store-settings",
+    { method: "PATCH", body: JSON.stringify(payload) },
+    token(),
+  );
 }
 
 export type { Category, Product };

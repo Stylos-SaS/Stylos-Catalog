@@ -92,3 +92,13 @@ model UsuarioAdmin {
 
   @@map("usuario_admin")
 }
+
+model ConfiguracionTienda {
+  id                String   @id @default("default")
+  whatsappNumero    String   @map("whatsapp_numero")
+  contactoEmail     String   @map("contacto_email")
+  contactoInstagram String   @map("contacto_instagram")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("configuracion_tienda")
+}

@@ -1,7 +1,35 @@
-import { queryOptions } from "@tanstack/react-query";
-import { fetchCategories, fetchProduct, fetchProducts } from "./api";
-import { CATALOG_MODE } from "./config";
+import { queryOptions, useQuery } from "@tanstack/react-query";
+import {
+  fetchCategories,
+  fetchProduct,
+  fetchProducts,
+  fetchPublicStoreSettingsWithFallback,
+  type StoreSettings,
+} from "./api";
+import { CATALOG_MODE, DEFAULT_STORE_SETTINGS, WHATSAPP_NUMBER } from "./config";
 import type { ProductsQueryParams } from "./types";
+
+export const storeSettingsKeys = {
+  all: ["store-settings"] as const,
+};
+
+export function storeSettingsQueryOptions() {
+  return queryOptions({
+    queryKey: storeSettingsKeys.all,
+    queryFn: fetchPublicStoreSettingsWithFallback,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: DEFAULT_STORE_SETTINGS,
+  });
+}
+
+export function useStoreSettings(): StoreSettings {
+  const { data } = useQuery(storeSettingsQueryOptions());
+  return data ?? DEFAULT_STORE_SETTINGS;
+}
+
+export function useStoreWhatsAppNumber(): string {
+  return useStoreSettings().whatsappNumber || WHATSAPP_NUMBER;
+}
 
 export const categoryKeys = {
   all: ["categories"] as const,

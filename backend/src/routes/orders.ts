@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { config } from "../config.js";
 import { normalizeWhatsAppPhone } from "../lib/phone.js";
+import { getWhatsAppNumber } from "../services/store-settings.service.js";
 import {
   buildWhatsAppMessage,
   buildWhatsAppUrl,
@@ -47,7 +47,7 @@ export async function orderRoutes(app: FastifyInstance) {
 
     try {
       const order = await createOrder(app.prisma, parsed.data);
-      const whatsappNumber = config.WHATSAPP_NUMBER;
+      const whatsappNumber = await getWhatsAppNumber(app.prisma);
       const whatsappMessage = buildWhatsAppMessage(order, parsed.data.type);
       const whatsappUrl = buildWhatsAppUrl(whatsappNumber, whatsappMessage);
 

@@ -1,7 +1,19 @@
 import { Instagram, MessageCircle, Mail, MapPin } from "lucide-react";
 import logo from "@/assets/stylos-logo.jpeg";
+import { useStoreSettings } from "@/lib/queries";
+import { formatPhoneDisplay } from "@/lib/phone";
+
+function whatsAppToDisplayPhone(number: string): string {
+  const digits = number.replace(/\D/g, "");
+  const local = digits.startsWith("57") && digits.length === 12 ? digits.slice(2) : digits;
+  return formatPhoneDisplay(local);
+}
 
 export function Footer() {
+  const { whatsappNumber, contactEmail, contactInstagram } = useStoreSettings();
+  const phoneDisplay = `+57 ${whatsAppToDisplayPhone(whatsappNumber)}`;
+  const instagramHandle = contactInstagram.replace(/^@+/, "");
+
   return (
     <footer className="mt-20 border-t border-border bg-gradient-soft">
       <div className="mx-auto max-w-7xl px-6 py-12 grid gap-10 md:grid-cols-2">
@@ -23,10 +35,41 @@ export function Footer() {
         <div>
           <h4 className="text-sm font-semibold mb-3">Contacto</h4>
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li className="flex items-center gap-2"><MessageCircle className="h-4 w-4 text-primary" /> +57 301 403 9265</li>
-            <li className="flex items-center gap-2"><Mail className="h-4 w-4 text-primary" /> hola@stylos.co</li>
-            <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Colombia</li>
-            <li className="flex items-center gap-2"><Instagram className="h-4 w-4 text-primary" /> @stylos.variedades</li>
+            <li className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-primary shrink-0" />
+              <a
+                href={`https://wa.me/${whatsappNumber.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-foreground transition-colors"
+              >
+                {phoneDisplay}
+              </a>
+            </li>
+            <li className="flex items-center gap-2">
+              <Mail className="h-4 w-4 text-primary shrink-0" />
+              <a
+                href={`mailto:${contactEmail}`}
+                className="hover:text-foreground transition-colors"
+              >
+                {contactEmail}
+              </a>
+            </li>
+            <li className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary shrink-0" />
+              Colombia
+            </li>
+            <li className="flex items-center gap-2">
+              <Instagram className="h-4 w-4 text-primary shrink-0" />
+              <a
+                href={`https://instagram.com/${instagramHandle}`}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-foreground transition-colors"
+              >
+                @{instagramHandle}
+              </a>
+            </li>
           </ul>
         </div>
       </div>

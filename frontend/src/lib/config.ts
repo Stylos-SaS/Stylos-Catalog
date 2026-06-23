@@ -23,7 +23,19 @@ export const CATALOG_SHORT_LABEL = IS_MAYOR_CATALOG ? "Mayor" : "Detal";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
-export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER ?? "573014039265";
+export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER ?? "573001234567";
+
+export const STORE_CONTACT_EMAIL =
+  import.meta.env.VITE_STORE_CONTACT_EMAIL ?? "hola@stylos.co";
+
+export const STORE_CONTACT_INSTAGRAM =
+  import.meta.env.VITE_STORE_CONTACT_INSTAGRAM ?? "stylos.variedades";
+
+export const DEFAULT_STORE_SETTINGS = {
+  whatsappNumber: WHATSAPP_NUMBER,
+  contactEmail: STORE_CONTACT_EMAIL,
+  contactInstagram: STORE_CONTACT_INSTAGRAM,
+} as const;
 
 export const CART_STORAGE_KEY = `stylos-cart-${CATALOG_MODE}`;
 

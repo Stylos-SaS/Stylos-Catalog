@@ -13,6 +13,8 @@ const envSchema = z.object({
   SUPABASE_ANON_KEY: z.string().min(1, "SUPABASE_ANON_KEY is required (publishable key)"),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required (secret key)"),
   WHATSAPP_NUMBER: z.string().min(1).default("573001234567"),
+  STORE_CONTACT_EMAIL: z.string().email().default("hola@stylos.co"),
+  STORE_CONTACT_INSTAGRAM: z.string().min(1).default("stylos.variedades"),
   JWT_SECRET: z.string().min(16, "JWT_SECRET must be at least 16 characters"),
   SUPABASE_STORAGE_BUCKET: z.string().min(1).default("product-images"),
 });

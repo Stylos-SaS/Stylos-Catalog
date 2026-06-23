@@ -12,6 +12,7 @@ import { authRoutes } from "./routes/auth.js";
 import { adminProductRoutes } from "./routes/admin-products.js";
 import { adminOrderRoutes } from "./routes/admin-orders.js";
 import { adminDashboardRoutes } from "./routes/admin-dashboard.js";
+import { storeSettingsRoutes, adminStoreSettingsRoutes } from "./routes/store-settings.js";
 
 export async function buildApp() {
   const app = Fastify({
@@ -52,6 +53,8 @@ export async function buildApp() {
   await app.register(adminProductRoutes);
   await app.register(adminOrderRoutes);
   await app.register(adminDashboardRoutes);
+  await app.register(storeSettingsRoutes);
+  await app.register(adminStoreSettingsRoutes);
 
   return app;
 }
