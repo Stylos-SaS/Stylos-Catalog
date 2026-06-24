@@ -6,13 +6,18 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+const isVercel = Boolean(process.env.VERCEL);
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    // Vercel preset + prerender is broken in Nitro v3; SSR at request time is enough.
+    ...(isVercel ? { prerender: { enabled: false } } : {}),
   },
   nitro: {
-    preset: "node-server",
+    // Docker/Railway: long-running Node server. Vercel: serverless functions in .vercel/output/.
+    preset: isVercel ? "vercel" : "node-server",
   },
 });

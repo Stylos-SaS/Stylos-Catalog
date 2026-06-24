@@ -132,7 +132,9 @@ En **ambos**, configurar en build time:
 
 - `VITE_API_BASE_URL` → URL pública del backend Railway (ej. `https://tu-api.up.railway.app`)
 
-Root Directory: `frontend`. Install: `pnpm install`. Build: `pnpm build`.
+Root Directory: `frontend`. Framework Preset: **TanStack Start** (o dejar que `frontend/vercel.json` lo aplique). Install: `pnpm install`. Build: `pnpm build`. No configures Output Directory manualmente.
+
+No agregues `NODE_ENV=production` en las variables de Vercel: hace que `pnpm install` omita devDependencies (`vite` no se instala y el build falla).
 
 Tras desplegar frontends, actualizar `CORS_ORIGINS` en Railway con las URLs finales de Vercel.
 
