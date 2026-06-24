@@ -6,7 +6,7 @@ import { ProductCard } from "@/components/storefront/ProductCard";
 import { enrichCategories } from "@/lib/categories-ui";
 import { IS_MAYOR_CATALOG } from "@/lib/config";
 import { categoriesQueryOptions, featuredProductsQueryOptions } from "@/lib/queries";
-import heroImg from "@/assets/hero.jpg";
+import heroImg from "@/assets/stylos-logo.jpeg";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
@@ -72,7 +72,7 @@ function Home() {
           <div className="relative">
             <div className="absolute -inset-6 rounded-[2.5rem] bg-gradient-brand opacity-30 blur-2xl" />
             <div className="relative overflow-hidden rounded-[2rem] shadow-pop border border-white/40">
-              <img src={heroImg} alt="Stylos Variedades" className="aspect-[4/3] w-full object-cover" />
+              <img src={heroImg} alt="Stylos Variedades" className="aspect-[4/3] w-full object-contain bg-gradient-soft" />
             </div>
             <div className="absolute -bottom-4 -left-4 hidden rounded-2xl bg-background/95 backdrop-blur px-4 py-3 shadow-pop sm:flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/15 text-primary">

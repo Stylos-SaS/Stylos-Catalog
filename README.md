@@ -56,7 +56,7 @@ Arquitectura recomendada para producción:
 
 | Componente | Hosting | Notas |
 |------------|---------|-------|
-| Backend API | [Railway](https://railway.app) (Dockerfile) | Root dir `backend/`, rama `main` |
+| Backend API | [Render](https://render.com) (Dockerfile) | Web Service, Root dir `backend/`, rama `main` |
 | Catálogo detal | [Vercel](https://vercel.com) | Proyecto 1, `VITE_CATALOG_MODE=detal` |
 | Catálogo mayor | Vercel | Proyecto 2, `VITE_CATALOG_MODE=mayor` |
 | DB + Storage | Supabase | PostgreSQL + bucket `product-images` |
@@ -64,9 +64,9 @@ Arquitectura recomendada para producción:
 ### Orden de deploy
 
 1. **Supabase:** crear bucket público `product-images` (o el valor de `SUPABASE_STORAGE_BUCKET`).
-2. **Railway:** conectar repo GitHub, rama `main`, Root Directory `backend/`, builder **Dockerfile** (el mismo de `docker compose`).
-3. **Variables de entorno** en Railway (ver tabla abajo).
-4. **Deploy** en Railway.
+2. **Render:** crear un **Web Service**, conectar repo GitHub, rama `main`, Root Directory `backend/`, runtime **Docker** (usa el mismo `backend/Dockerfile` de `docker compose`).
+3. **Variables de entorno** en Render (ver tabla abajo).
+4. **Deploy** en Render.
 5. **Migraciones** desde local (carpeta `backend/`, `.env` apuntando a Supabase prod — no commitear):
 
    ```bash
@@ -82,21 +82,23 @@ Arquitectura recomendada para producción:
 
    Usar `ADMIN_SEED_PASSWORD` fuerte (32+ caracteres). Luego cambiar contraseña en **Admin → Perfil**.
 
-7. **Health check:** en Railway, configurar `/health`. Respuesta esperada: `{ "ok": true, "db": "connected" }`.
+7. **Health check:** en Render, configurar el Health Check Path en `/health`. Respuesta esperada: `{ "ok": true, "db": "connected" }`.
 8. **Vercel:** dos proyectos (detal y mayor), Root Directory `frontend/`, build `pnpm build`, start según TanStack Start/Nitro.
 9. **Admin → Perfil:** WhatsApp, email, Instagram, dirección y contraseña admin.
 
-### Railway
+### Render
 
 | Setting | Valor |
 |---------|-------|
+| Tipo | Web Service |
 | Root Directory | `backend` |
-| Builder | Dockerfile |
+| Runtime | Docker (`backend/Dockerfile`) |
 | Branch | `main` |
-| Port | `4000` |
-| Health check | `/health` |
+| Health Check Path | `/health` |
 
-**Variables obligatorias en Railway:**
+Render inyecta la variable `PORT` automáticamente y el backend ya la lee ([`backend/src/index.ts`](backend/src/index.ts) escucha en `0.0.0.0`); no la definas manualmente.
+
+**Variables obligatorias en Render:**
 
 | Variable | Notas |
 |----------|-------|
@@ -110,6 +112,8 @@ Arquitectura recomendada para producción:
 | `SUPABASE_STORAGE_BUCKET` | Default `product-images` |
 | `CORS_ORIGINS` | URLs de los dos frontends Vercel, separadas por coma |
 | `WHATSAPP_NUMBER`, `STORE_CONTACT_*` | Fallback inicial; luego Admin → Perfil |
+
+> Nota: en el plan free de Render el servicio se duerme tras ~15 min de inactividad; el primer request tras dormir puede tardar ~30-60 s (cold start).
 
 Generar `JWT_SECRET` (PowerShell):
 
@@ -130,17 +134,17 @@ Cada catálogo es un proyecto Vercel independiente:
 
 En **ambos**, configurar en build time:
 
-- `VITE_API_BASE_URL` → URL pública del backend Railway (ej. `https://tu-api.up.railway.app`)
+- `VITE_API_BASE_URL` → URL pública del backend Render (ej. `https://stylos-catalog.onrender.com`), sin `/` final
 
 Root Directory: `frontend`. Framework Preset: **TanStack Start** (o dejar que `frontend/vercel.json` lo aplique). Install: `pnpm install`. Build: `pnpm build`. No configures Output Directory manualmente.
 
 No agregues `NODE_ENV=production` en las variables de Vercel: hace que `pnpm install` omita devDependencies (`vite` no se instala y el build falla).
 
-Tras desplegar frontends, actualizar `CORS_ORIGINS` en Railway con las URLs finales de Vercel.
+Tras desplegar frontends, actualizar `CORS_ORIGINS` en Render con las URLs finales de Vercel.
 
 ### Monitoreo
 
-Configurar [UptimeRobot](https://uptimerobot.com) (u similar) apuntando a `https://<tu-backend-railway>/health`, intervalo 5 min, alerta si status ≠ 200 o `db` ≠ `connected`.
+Configurar [UptimeRobot](https://uptimerobot.com) (u similar) apuntando a `https://<tu-backend-render>/health`, intervalo 5 min, alerta si status ≠ 200 o `db` ≠ `connected`. En el plan free de Render, este ping periódico también ayuda a mantener el servicio despierto.
 
 ### Checklist post-deploy
 
