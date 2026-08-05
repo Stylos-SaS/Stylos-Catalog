@@ -7,7 +7,7 @@ import { ProductCard } from "@/components/storefront/ProductCard";
 import { ApiError } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { CATALOG_SHORT_LABEL, IS_MAYOR_CATALOG, productPrice } from "@/lib/config";
-import { productImages } from "@/lib/product-image";
+import { productFullImages, productImages } from "@/lib/product-image";
 import { productQueryOptions, relatedProductsQueryOptions } from "@/lib/queries";
 import { formatCOP } from "@/lib/format";
 import { toast } from "sonner";
@@ -49,7 +49,8 @@ function ProductDetail() {
   const [qty, setQty] = useState(1);
   const price = productPrice(product);
   const compareAt = IS_MAYOR_CATALOG ? product.priceRetail : null;
-  const images = productImages(product.images);
+  const thumbs = productImages(product.images);
+  const fulls = productFullImages(product.images, product.imagesFull);
 
   const relatedQuery = useQuery(
     relatedProductsQueryOptions(product.categoryId, product.id),
@@ -70,11 +71,15 @@ function ProductDetail() {
         <div className="mt-6 grid gap-10 md:grid-cols-2">
           <div className="space-y-3">
             <div className="aspect-square overflow-hidden rounded-3xl bg-secondary shadow-soft">
-              <img src={images[active]} alt={product.name} className="h-full w-full object-cover" />
+              <img
+                src={fulls[active]}
+                alt={product.name}
+                className="h-full w-full object-cover"
+              />
             </div>
-            {images.length > 1 && (
+            {thumbs.length > 1 && (
               <div className="flex gap-2 overflow-x-auto">
-                {images.map((img, i) => (
+                {thumbs.map((img, i) => (
                   <button
                     key={i}
                     onClick={() => setActive(i)}
@@ -83,7 +88,12 @@ function ProductDetail() {
                       active === i ? "border-primary" : "border-transparent opacity-70 hover:opacity-100",
                     )}
                   >
-                    <img src={img} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={img}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover"
+                    />
                   </button>
                 ))}
               </div>

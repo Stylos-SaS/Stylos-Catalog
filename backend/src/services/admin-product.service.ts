@@ -1,6 +1,6 @@
 import { Prisma } from "../generated/prisma/client.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
-import { toAdminProductDTO, toProductDTO } from "../lib/mappers.js";
+import { toAdminProductDTO } from "../lib/mappers.js";
 import { deleteStorageFiles } from "../lib/storage.js";
 
 const productInclude = {
@@ -21,6 +21,8 @@ export class ProductAdminError extends Error {
 export type ProductImageInput = {
   url: string;
   path: string;
+  urlThumb?: string | null;
+  pathThumb?: string | null;
   esPrincipal?: boolean;
 };
 
@@ -39,8 +41,21 @@ function mapImages(images: ProductImageInput[]) {
   return images.map((img, index) => ({
     url: img.url,
     path: img.path,
+    urlThumb: img.urlThumb ?? null,
+    pathThumb: img.pathThumb ?? null,
     esPrincipal: img.esPrincipal ?? index === 0,
   }));
+}
+
+function collectImagePaths(
+  images: { path: string; pathThumb?: string | null }[],
+): string[] {
+  const paths: string[] = [];
+  for (const img of images) {
+    paths.push(img.path);
+    if (img.pathThumb) paths.push(img.pathThumb);
+  }
+  return paths;
 }
 
 async function assertCategory(prisma: PrismaClient, categoryId: string) {
@@ -95,7 +110,7 @@ export async function updateAdminProduct(
       const nextPaths = new Set(input.images.map((img) => img.path));
       for (const img of existing.imagenes) {
         if (!nextPaths.has(img.path)) {
-          removedPaths.push(img.path);
+          removedPaths.push(...collectImagePaths([img]));
         }
       }
 
@@ -157,7 +172,7 @@ export async function deleteAdminProduct(prisma: PrismaClient, id: string) {
     throw error;
   }
 
-  const paths = existing.imagenes.map((img) => img.path);
+  const paths = collectImagePaths(existing.imagenes);
   if (paths.length > 0) {
     await deleteStorageFiles(paths);
   }

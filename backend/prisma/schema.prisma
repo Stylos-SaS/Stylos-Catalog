@@ -49,6 +49,8 @@ model ProductoImagen {
   productoId  String   @map("producto_id")
   url         String
   path        String
+  urlThumb    String?  @map("url_thumb")
+  pathThumb   String?  @map("path_thumb")
   esPrincipal Boolean  @default(false) @map("es_principal")
   producto    Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
 

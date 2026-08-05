@@ -16,6 +16,8 @@ import type { StoreSettings } from "./api";
 export type ProductImagePayload = {
   url: string;
   path: string;
+  urlThumb?: string | null;
+  pathThumb?: string | null;
   esPrincipal?: boolean;
 };
 
