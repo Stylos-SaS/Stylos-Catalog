@@ -13,7 +13,14 @@ import { resolveDefaultCategoryId } from "@/lib/default-category";
 import { cn } from "@/lib/utils";
 
 type FormImage =
-  | { type: "existing"; url: string; path: string; preview: string }
+  | {
+      type: "existing";
+      url: string;
+      path: string;
+      urlThumb: string | null;
+      pathThumb: string | null;
+      preview: string;
+    }
   | { type: "pending"; file: File; preview: string };
 
 type ProductFormModalProps = {
@@ -46,10 +53,12 @@ export function ProductFormModal({
   const [active, setActive] = useState(product?.active ?? true);
   const [images, setImages] = useState<FormImage[]>(
     product?.imageAssets?.map((img) => ({
-      type: "existing",
+      type: "existing" as const,
       url: img.url,
       path: img.path,
-      preview: img.url,
+      urlThumb: img.urlThumb,
+      pathThumb: img.pathThumb,
+      preview: img.urlThumb ?? img.url,
     })) ?? [],
   );
   const [uploading, setUploading] = useState(false);
@@ -124,7 +133,12 @@ export function ProductFormModal({
       const resolvedImages: ProductImagePayload[] = [];
       for (const img of images) {
         if (img.type === "existing") {
-          resolvedImages.push({ url: img.url, path: img.path });
+          resolvedImages.push({
+            url: img.url,
+            path: img.path,
+            urlThumb: img.urlThumb,
+            pathThumb: img.pathThumb,
+          });
         } else {
           const result = await uploadAdminProductImage(img.file, product?.id);
           URL.revokeObjectURL(img.preview);
@@ -144,6 +158,8 @@ export function ProductFormModal({
         images: resolvedImages.map((img, index) => ({
           url: img.url,
           path: img.path,
+          urlThumb: img.urlThumb,
+          pathThumb: img.pathThumb,
           esPrincipal: index === 0,
         })),
       };

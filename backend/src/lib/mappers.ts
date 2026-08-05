@@ -20,7 +20,10 @@ export type ProductDTO = {
   categoryId: string;
   priceRetail: number;
   priceWholesale: number;
+  /** Thumbnail URLs for cards/lists (falls back to full if thumb missing). */
   images: string[];
+  /** Full-size URLs for product detail. */
+  imagesFull: string[];
   createdAt: string;
   active: boolean;
 };
@@ -39,6 +42,8 @@ export type AdminCategoryDTO = CategoryDTO & {
 export type ProductImageAssetDTO = {
   url: string;
   path: string;
+  urlThumb: string | null;
+  pathThumb: string | null;
   esPrincipal: boolean;
 };
 
@@ -52,9 +57,9 @@ type ProductWithRelations = Producto & {
 };
 
 export function toProductDTO(product: ProductWithRelations): ProductDTO {
-  const images = [...product.imagenes]
-    .sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal))
-    .map((img) => img.url);
+  const sorted = [...product.imagenes].sort(
+    (a, b) => Number(b.esPrincipal) - Number(a.esPrincipal),
+  );
 
   return {
     id: product.id,
@@ -65,7 +70,8 @@ export function toProductDTO(product: ProductWithRelations): ProductDTO {
     categoryId: product.categoria.id,
     priceRetail: product.precioDetal,
     priceWholesale: product.precioMayor,
-    images,
+    images: sorted.map((img) => img.urlThumb ?? img.url),
+    imagesFull: sorted.map((img) => img.url),
     createdAt: formatColombiaDateKey(product.fechaCreacion),
     active: product.activo,
   };
@@ -97,6 +103,8 @@ export function toAdminProductDTO(product: ProductWithRelations): AdminProductDT
     .map((img) => ({
       url: img.url,
       path: img.path,
+      urlThumb: img.urlThumb,
+      pathThumb: img.pathThumb,
       esPrincipal: img.esPrincipal,
     }));
 
@@ -141,7 +149,8 @@ type PedidoWithDetails = Pedido & { detalles: DetalleWithProduct[] };
 
 function primaryImageUrl(imagenes: ProductoImagen[]): string {
   const sorted = [...imagenes].sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal));
-  return sorted[0]?.url ?? "";
+  const primary = sorted[0];
+  return primary?.urlThumb ?? primary?.url ?? "";
 }
 
 export function formatContactoCliente(phone: string | null): string {

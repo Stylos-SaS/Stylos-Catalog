@@ -18,7 +18,10 @@ export type Product = {
   categoryId: string;
   priceRetail: number;
   priceWholesale: number;
+  /** Thumbnail URLs for cards/lists (falls back to full if thumb missing). */
   images: string[];
+  /** Full-size URLs for product detail. */
+  imagesFull?: string[];
   createdAt: string;
   active: boolean;
 };
@@ -26,6 +29,8 @@ export type Product = {
 export type ProductImageAsset = {
   url: string;
   path: string;
+  urlThumb: string | null;
+  pathThumb: string | null;
   esPrincipal: boolean;
 };
 

@@ -1,7 +1,7 @@
 import { Prisma } from "../generated/prisma/client.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
-import { toAdminProductDTO, toProductDTO } from "../lib/mappers.js";
-import { deleteStorageFiles } from "../lib/storage.js";
+import { toAdminProductDTO } from "../lib/mappers.js";
+import { deleteStorageFiles, relocateTmpProductImages } from "../lib/storage.js";
 
 const productInclude = {
   categoria: true,
@@ -21,6 +21,8 @@ export class ProductAdminError extends Error {
 export type ProductImageInput = {
   url: string;
   path: string;
+  urlThumb?: string | null;
+  pathThumb?: string | null;
   esPrincipal?: boolean;
 };
 
@@ -39,8 +41,21 @@ function mapImages(images: ProductImageInput[]) {
   return images.map((img, index) => ({
     url: img.url,
     path: img.path,
+    urlThumb: img.urlThumb ?? null,
+    pathThumb: img.pathThumb ?? null,
     esPrincipal: img.esPrincipal ?? index === 0,
   }));
+}
+
+function collectImagePaths(
+  images: { path: string; pathThumb?: string | null }[],
+): string[] {
+  const paths: string[] = [];
+  for (const img of images) {
+    paths.push(img.path);
+    if (img.pathThumb) paths.push(img.pathThumb);
+  }
+  return paths;
 }
 
 async function assertCategory(prisma: PrismaClient, categoryId: string) {
@@ -62,12 +77,27 @@ export async function createAdminProduct(prisma: PrismaClient, input: UpsertAdmi
       precioMayor: input.priceWholesale,
       categoriaId: input.categoryId,
       activo: input.active ?? true,
-      imagenes: input.images?.length ? { create: mapImages(input.images) } : undefined,
     },
     include: productInclude,
   });
 
-  return toAdminProductDTO(product);
+  const finalImages = await relocateTmpProductImages(product.id, input.images ?? []);
+
+  if (finalImages.length > 0) {
+    await prisma.productoImagen.createMany({
+      data: mapImages(finalImages).map((img) => ({
+        ...img,
+        productoId: product.id,
+      })),
+    });
+  }
+
+  const withImages = await prisma.producto.findUniqueOrThrow({
+    where: { id: product.id },
+    include: productInclude,
+  });
+
+  return toAdminProductDTO(withImages);
 }
 
 export async function updateAdminProduct(
@@ -89,20 +119,24 @@ export async function updateAdminProduct(
   }
 
   const removedPaths: string[] = [];
+  const imagesToPersist =
+    input.images !== undefined
+      ? await relocateTmpProductImages(id, input.images)
+      : undefined;
 
   const product = await prisma.$transaction(async (tx) => {
-    if (input.images !== undefined) {
-      const nextPaths = new Set(input.images.map((img) => img.path));
+    if (imagesToPersist !== undefined) {
+      const nextPaths = new Set(imagesToPersist.map((img) => img.path));
       for (const img of existing.imagenes) {
         if (!nextPaths.has(img.path)) {
-          removedPaths.push(img.path);
+          removedPaths.push(...collectImagePaths([img]));
         }
       }
 
       await tx.productoImagen.deleteMany({ where: { productoId: id } });
-      if (input.images.length > 0) {
+      if (imagesToPersist.length > 0) {
         await tx.productoImagen.createMany({
-          data: mapImages(input.images).map((img) => ({
+          data: mapImages(imagesToPersist).map((img) => ({
             ...img,
             productoId: id,
           })),
@@ -157,7 +191,7 @@ export async function deleteAdminProduct(prisma: PrismaClient, id: string) {
     throw error;
   }
 
-  const paths = existing.imagenes.map((img) => img.path);
+  const paths = collectImagePaths(existing.imagenes);
   if (paths.length > 0) {
     await deleteStorageFiles(paths);
   }

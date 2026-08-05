@@ -13,6 +13,8 @@ import { toAdminProductDTO } from "../lib/mappers.js";
 const imageSchema = z.object({
   url: z.string().url(),
   path: z.string().min(1),
+  urlThumb: z.string().url().nullable().optional(),
+  pathThumb: z.string().min(1).nullable().optional(),
   esPrincipal: z.boolean().optional(),
 });
 
