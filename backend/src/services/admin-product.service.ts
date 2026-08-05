@@ -1,7 +1,7 @@
 import { Prisma } from "../generated/prisma/client.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import { toAdminProductDTO } from "../lib/mappers.js";
-import { deleteStorageFiles } from "../lib/storage.js";
+import { deleteStorageFiles, relocateTmpProductImages } from "../lib/storage.js";
 
 const productInclude = {
   categoria: true,
@@ -77,12 +77,27 @@ export async function createAdminProduct(prisma: PrismaClient, input: UpsertAdmi
       precioMayor: input.priceWholesale,
       categoriaId: input.categoryId,
       activo: input.active ?? true,
-      imagenes: input.images?.length ? { create: mapImages(input.images) } : undefined,
     },
     include: productInclude,
   });
 
-  return toAdminProductDTO(product);
+  const finalImages = await relocateTmpProductImages(product.id, input.images ?? []);
+
+  if (finalImages.length > 0) {
+    await prisma.productoImagen.createMany({
+      data: mapImages(finalImages).map((img) => ({
+        ...img,
+        productoId: product.id,
+      })),
+    });
+  }
+
+  const withImages = await prisma.producto.findUniqueOrThrow({
+    where: { id: product.id },
+    include: productInclude,
+  });
+
+  return toAdminProductDTO(withImages);
 }
 
 export async function updateAdminProduct(
@@ -104,10 +119,14 @@ export async function updateAdminProduct(
   }
 
   const removedPaths: string[] = [];
+  const imagesToPersist =
+    input.images !== undefined
+      ? await relocateTmpProductImages(id, input.images)
+      : undefined;
 
   const product = await prisma.$transaction(async (tx) => {
-    if (input.images !== undefined) {
-      const nextPaths = new Set(input.images.map((img) => img.path));
+    if (imagesToPersist !== undefined) {
+      const nextPaths = new Set(imagesToPersist.map((img) => img.path));
       for (const img of existing.imagenes) {
         if (!nextPaths.has(img.path)) {
           removedPaths.push(...collectImagePaths([img]));
@@ -115,9 +134,9 @@ export async function updateAdminProduct(
       }
 
       await tx.productoImagen.deleteMany({ where: { productoId: id } });
-      if (input.images.length > 0) {
+      if (imagesToPersist.length > 0) {
         await tx.productoImagen.createMany({
-          data: mapImages(input.images).map((img) => ({
+          data: mapImages(imagesToPersist).map((img) => ({
             ...img,
             productoId: id,
           })),

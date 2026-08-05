@@ -112,3 +112,78 @@ export async function deleteStorageFiles(paths: string[]) {
     throw new StorageError(error.message, 502);
   }
 }
+
+const TMP_PREFIX = "products/tmp/";
+
+export type RelocatableProductImage = {
+  url: string;
+  path: string;
+  urlThumb?: string | null;
+  pathThumb?: string | null;
+  esPrincipal?: boolean;
+};
+
+function publicUrlFor(path: string) {
+  return supabaseAdmin.storage.from(config.SUPABASE_STORAGE_BUCKET).getPublicUrl(path).data
+    .publicUrl;
+}
+
+function filenameOf(objectPath: string) {
+  const parts = objectPath.split("/");
+  return parts[parts.length - 1] ?? objectPath;
+}
+
+async function moveStorageObject(from: string, to: string) {
+  if (from === to) return;
+  const { error } = await supabaseAdmin.storage
+    .from(config.SUPABASE_STORAGE_BUCKET)
+    .move(from, to);
+  if (error) {
+    throw new StorageError(error.message, 502);
+  }
+}
+
+/**
+ * Moves any `products/tmp/...` objects into `products/{productId}/...`
+ * and returns image metadata with updated paths/URLs.
+ */
+export async function relocateTmpProductImages<T extends RelocatableProductImage>(
+  productId: string,
+  images: T[],
+): Promise<T[]> {
+  if (images.length === 0) return images;
+
+  const targetFolder = `products/${productId}`;
+  const result: T[] = [];
+
+  for (const image of images) {
+    let path = image.path;
+    let url = image.url;
+    let pathThumb = image.pathThumb ?? null;
+    let urlThumb = image.urlThumb ?? null;
+
+    if (path.startsWith(TMP_PREFIX)) {
+      const dest = `${targetFolder}/${filenameOf(path)}`;
+      await moveStorageObject(path, dest);
+      path = dest;
+      url = publicUrlFor(dest);
+    }
+
+    if (pathThumb?.startsWith(TMP_PREFIX)) {
+      const destThumb = `${targetFolder}/${filenameOf(pathThumb)}`;
+      await moveStorageObject(pathThumb, destThumb);
+      pathThumb = destThumb;
+      urlThumb = publicUrlFor(destThumb);
+    }
+
+    result.push({
+      ...image,
+      path,
+      url,
+      pathThumb,
+      urlThumb,
+    });
+  }
+
+  return result;
+}
